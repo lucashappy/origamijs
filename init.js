@@ -1,7 +1,7 @@
 var camera, scene, renderer, controls, clock, trackballControls;
 var mesh, hds, edges, mouse, raycaster, selected = [],
-    meshURL = "./downloads/06.vallyes_ridges_cuts2.dae",
-   // meshURL = "./models/06_TokyoIT.dae",
+   // meshURL = "./downloads/06.vallyes_ridges_cuts2.dae",
+     meshURL = "./models/default.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -21,6 +21,7 @@ loader.load(meshURL, function (collada) {
 
 
     dae = collada.scene;
+    geoMesh = dae.children[0].children[0].geometry
 
     /* dae.traverse(function (child) {
 
@@ -180,8 +181,11 @@ function allFlat() {
 // Rebuilds all objects
 // 
 function resetObjects() {
-    hds = paperHalfedge(5, 5, 100);
+    //hds = paperHalfedge(5, 5, 100);
+    //objectsFromHds();
+    hds = halfedgeFromMesh(geoMesh)
     objectsFromHds();
+    getEdgeTypesData();
 }
 
 //
@@ -196,8 +200,9 @@ function getActiveMode() {
         var checked = sel.property("checked");
         if (checked) activeGui = value;
         gui.select("div." + value + "Gui").style("visibility", function () {
-            if (checked) return "visible";
-            return "hidden";
+            //if (checked) return "visible";
+            //return "hidden";
+            return "visible";
         })
     })
     return activeGui;
@@ -238,7 +243,7 @@ function initInterface() {
         .attr("name", "guibox")
         .attr("value", "anim");
     gui.append("span").text(" Animation");
-    var animGui = gui.append("div");//.classed("animGui", true);//.style("visibility", "hidden");
+    var animGui = gui.append("div"); //.classed("animGui", true);//.style("visibility", "hidden");
     var animButtonLabel = ["Relax", "Auto-Relax"];
     var animButtons = animGui.selectAll("button.guiButton")
         .data(animButtonLabel)
@@ -306,7 +311,7 @@ function init() {
 
     // Define Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = 400;
+    camera.position.z = 1000;
 
     // Define scene
     scene = new THREE.Scene();
@@ -332,7 +337,6 @@ function init() {
     scene.add(lights[1]);
 
     /* Define the object to be viewed */
-    var geoMesh = dae.children[0].children[0].geometry
     hds = halfedgeFromMesh(geoMesh)
     objectsFromHds();
     // resetObjects();
@@ -676,15 +680,17 @@ function getEdgeTypesData() {
         if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
             console.log(xmlhttp.responseXML)
             xmlDoc = xmlhttp.responseXML;
-
-            var edgeTypeTag = xmlDoc.getElementsByTagName("edge_type")[0]
-            if (edgeTypeTag) {
-                parseEdgeType("cuts", "Cut");
-                parseEdgeType("ridges", "Ridge");
-                parseEdgeType("valleys", "Valley");
-            }
-
+            loadEdgeTypes();
         }
+    }
+}
+
+function loadEdgeTypes() {
+    var edgeTypeTag = xmlDoc.getElementsByTagName("edge_type")[0]
+    if (edgeTypeTag) {
+        parseEdgeType("cuts", "Cut");
+        parseEdgeType("ridges", "Ridge");
+        parseEdgeType("valleys", "Valley");
     }
 }
 
@@ -698,3 +704,48 @@ function parseEdgeType(tag, label) {
         }
     }
 }
+
+
+function handleFileSelect(evt) {
+
+    var file = evt.target.files[0]; // FileList object
+
+    // Loop through the FileList and render image files as thumbnails.
+    /* for (var i = 0, f; f = files[i]; i++) {
+
+         // Only process image files.
+         /*if (!f.type.match('application/xml')) {
+                 continue;
+               }*/
+
+    var reader = new FileReader();
+
+    // Closure to capture the file information.
+    reader.onload = (function (theFile) {
+        return function (e) {
+
+            meshURL = e.target.result
+            loader.load(meshURL, function (collada) {
+
+
+                dae = collada.scene;
+                geoMesh = dae.children[0].children[0].geometry
+                hds = halfedgeFromMesh(geoMesh)
+                objectsFromHds();
+                getEdgeTypesData();
+
+
+
+            });
+
+
+        };
+    })(file);
+
+    // Read in the image file as a data URL.
+    reader.readAsDataURL(file);
+
+};
+
+
+document.getElementById('files').addEventListener('change', handleFileSelect, false);

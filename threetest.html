@@ -26,13 +26,27 @@
                 position: absolute;
                 top: 130px;
                 left: 40px;
+                height: 30px;
+                width: 80px;
+
+            }
+
+            .upload {
+                position: absolute;
+                top: 170px;
+                left: 40px;
+                height: 30px;
+                width: 80px;
                     
             }
 		</style>
 	</head>
 	<body>
 		
-        <button class="download" onclick="downloadMesh()" >Download</button>
+        <form>
+        <input type="file" id="files" name="files[]" class="upload"/>
+        <input type="button" class="download" onclick="downloadMesh()" value="Download" />
+        </form>
         
 		<script src="./d3.min.js"></script>
 		<script src="./three.min.js"></script>
@@ -43,6 +57,7 @@
 		<script src="./constraints.js"></script>
         <script src="./ColladaLoader.js"></script>
 		<script src="./init.js"></script>
+
 
 	</body>
 </html>

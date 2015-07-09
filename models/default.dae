@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 2.73.0 commit date:2015-01-20, commit time:18:16, hash:bbf09d9</authoring_tool>
+    </contributor>
+    <created>2015-07-06T03:23:05</created>
+    <modified>2015-07-06T03:23:05</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_images/>
+  <library_geometries>
+    <geometry id="Plane-mesh" name="Plane">
+      <mesh>
+        <source id="Plane-mesh-positions">
+          <float_array id="Plane-mesh-positions-array" count="75">-100 -7.54979e-6 -100 100 -7.54979e-6 -100 -100 7.54979e-6 100 100 7.54979e-6 100 -100 0 0 0 -7.54979e-6 -100 100 0 0 0 7.54979e-6 100 0 0 0 -100 -3.77489e-6 -50 50 -7.54979e-6 -100 100 3.77489e-6 50 -50 7.54979e-6 100 -100 3.77489e-6 50 -50 -7.54979e-6 -100 100 -3.77489e-6 -50 50 7.54979e-6 100 0 3.77489e-6 50 0 -3.77489e-6 -50 -50 0 0 50 0 0 50 -3.77489e-6 -50 -50 -3.77489e-6 -50 -50 3.77489e-6 50 50 3.77489e-6 50</float_array>
+          <technique_common>
+            <accessor source="#Plane-mesh-positions-array" count="25" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Plane-mesh-normals">
+          <float_array id="Plane-mesh-normals-array" count="96">0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0 0 -1 0</float_array>
+          <technique_common>
+            <accessor source="#Plane-mesh-normals-array" count="32" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Plane-mesh-vertices">
+          <input semantic="POSITION" source="#Plane-mesh-positions"/>
+        </vertices>
+        <polylist count="32">
+          <input semantic="VERTEX" source="#Plane-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Plane-mesh-normals" offset="1"/>
+          <vcount>3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 3 </vcount>
+          <p>11 0 3 0 16 0 17 1 7 1 12 1 18 2 8 2 19 2 15 3 6 3 20 3 21 4 20 4 8 4 10 5 21 5 18 5 1 6 15 6 21 6 22 7 19 7 4 7 14 8 22 8 9 8 5 9 18 9 22 9 23 10 12 10 2 10 19 11 23 11 13 11 8 12 17 12 23 12 24 13 16 13 7 13 20 14 24 14 17 14 6 15 11 15 24 15 24 16 11 16 16 16 23 17 17 17 12 17 22 18 18 18 19 18 21 19 15 19 20 19 18 20 21 20 8 20 5 21 10 21 18 21 10 22 1 22 21 22 9 23 22 23 4 23 0 24 14 24 9 24 14 25 5 25 22 25 13 26 23 26 2 26 4 27 19 27 13 27 19 28 8 28 23 28 17 29 24 29 7 29 8 30 20 30 17 30 20 31 6 31 24 31</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="Plane" name="Plane" type="NODE">
+        <matrix sid="transform">1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#Plane-mesh"/>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

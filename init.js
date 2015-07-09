@@ -1,7 +1,7 @@
 var camera, scene, renderer, controls, clock, trackballControls;
 var mesh, hds, edges, mouse, raycaster, selected = [],
-   // meshURL = "./downloads/06.vallyes_ridges_cuts2.dae",
-     meshURL = "./models/default.dae",
+    meshURL = "./downloads/06.vallyes_ridges_cuts2.dae",
+    // meshURL = "./models/default.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -227,8 +227,11 @@ function initInterface() {
         .data(edgeButtonLabel)
         .enter()
         .append("button")
-        .attr("class", "guiButton")
+        .attr("class", "btn btn-default guiButton")
         .text(function (d) {
+            return d
+        })
+        .attr("id", function (d) {
             return d
         })
         .on("click", function (d, i) {
@@ -249,7 +252,7 @@ function initInterface() {
         .data(animButtonLabel)
         .enter()
         .append("button")
-        .attr("class", "guiButton")
+        .attr("class", "btn btn-default guiButton")
         .text(function (d) {
             return d
         })
@@ -306,8 +309,8 @@ function init() {
     });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0xA0A0F0);
-    document.body.appendChild(renderer.domElement);
+    renderer.setClearColor(0xc3c3c3);
+    document.getElementById("stage3D").appendChild(renderer.domElement);
 
     // Define Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
@@ -348,7 +351,7 @@ function init() {
 
     /* The clock and trackball */
     clock = new THREE.Clock();
-    trackballControls = new THREE.TrackballControls(camera);
+    trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
 
     // Callbacks
     window.addEventListener('resize', onWindowResize, false);
@@ -729,7 +732,7 @@ function handleFileSelect(evt) {
 
 
                 dae = collada.scene;
-                geoMesh = dae.children[0].children[0].geometry
+                var geoMesh = dae.children[0].children[0].geometry
                 hds = halfedgeFromMesh(geoMesh)
                 objectsFromHds();
                 getEdgeTypesData();

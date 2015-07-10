@@ -1,6 +1,6 @@
 var camera, scene, renderer, controls, clock, trackballControls;
 var mesh, hds, edges, mouse, raycaster, selected = [],
-    meshURL = "./downloads/06.vallyes_ridges_cuts2.dae",
+    meshURL = "./downloads/06.states.dae",
     // meshURL = "./models/default.dae",
     xmlDoc;
 var constraints = [],
@@ -183,9 +183,10 @@ function allFlat() {
 function resetObjects() {
     //hds = paperHalfedge(5, 5, 100);
     //objectsFromHds();
+
+    $('.state-item').removeClass('active')
     hds = halfedgeFromMesh(geoMesh)
     objectsFromHds();
-    getEdgeTypesData();
 }
 
 //
@@ -330,8 +331,8 @@ function init() {
     scene.add(ambientLight);
 
     var lights = [];
-    lights[0] = new THREE.PointLight(0xaaaaaa, 1, 0);
-    lights[1] = new THREE.PointLight(0xaaaaaa, 1, 0);
+    lights[0] = new THREE.PointLight(0xaaffff, 0.5, 0);
+    lights[1] = new THREE.PointLight(0xffcccc, 0.5, 0);
 
     lights[0].position.set(0, 200, 80);
     lights[1].position.set(-100, -200, -100);
@@ -623,7 +624,61 @@ var saveData = (function () {
 
 function downloadMesh() {
 
-    //Save edge types data
+    saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
+}
+
+
+function getEdgeTypesData() {
+
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", meshURL, true);
+    xmlhttp.send();
+
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseXML)
+            xmlDoc = xmlhttp.responseXML;
+            loadEdgeTypes();
+        }
+    }
+}
+
+function loadEdgeTypes() {
+
+    var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type")
+
+    for (var i = 0; i < edgeTypeTags.length; i++) {
+      addState(i);
+    }
+
+    $('.state-item').last().trigger("click");
+
+    parseEdgeTypeByIndex(edgeTypeTags.length - 1)
+}
+
+function parseEdgeTypeByIndex(index) {
+    console.log("index " + index);
+    allFlat();
+    var edgeTypeNode = xmlDoc.getElementsByTagName("edge_type")[index]
+    parseEdgeType(edgeTypeNode, "cuts", "Cut");
+    parseEdgeType(edgeTypeNode, "ridges", "Ridge");
+    parseEdgeType(edgeTypeNode, "valleys", "Valley");
+}
+
+
+function parseEdgeType(edgeTypeNode, tag, label) {
+    var ridges = edgeTypeNode.getElementsByTagName(tag)[0].innerHTML.split(" ");
+    for (var i = 0; i < ridges.length; i++) {
+        var index = parseInt(ridges[i])
+        if (!isNaN(index)) {
+            selected.push(edges.children[index])
+            labelEdge(label)
+        }
+    }
+}
+
+function addNewState(){
+
     var cuts = [],
         ridges = [],
         valleys = [];
@@ -646,18 +701,22 @@ function downloadMesh() {
 
     });
 
-    if (!xmlDoc.getElementsByTagName("edge_type")[0]) {
+    if (!xmlDoc.getElementsByTagName("extra")[0]) {
         var geometryTag = xmlDoc.getElementsByTagName("geometry")[0]
         geometryTag.appendChild(xmlDoc.createElement("extra"))
-            .appendChild(xmlDoc.createElement("edge_type"))
     }
 
+    var edgeTypeNode = xmlDoc.createElement("edge_type");
+
+    xmlDoc
+        .getElementsByTagName("extra")[0]
+        .appendChild(edgeTypeNode)
+
     function addEdgeTypesToXML(tag, data) {
-        if (xmlDoc.getElementsByTagName(tag)[0]) {
-            xmlDoc.getElementsByTagName(tag)[0].innerHTML = data
+        if (edgeTypeNode.getElementsByTagName(tag)[0]) {
+            edgeTypeNode.getElementsByTagName(tag)[0].innerHTML = data
         } else {
-            var edgeTypeTag = xmlDoc.getElementsByTagName("edge_type")[0]
-            edgeTypeTag.appendChild(xmlDoc.createElement(tag))
+            edgeTypeNode.appendChild(xmlDoc.createElement(tag))
                 .innerHTML = data
         }
     }
@@ -665,49 +724,32 @@ function downloadMesh() {
     addEdgeTypesToXML("cuts", cuts.join(" "))
     addEdgeTypesToXML("ridges", ridges.join(" "))
     addEdgeTypesToXML("valleys", valleys.join(" "))
-        /* xmlDoc.getElementsByTagName("cuts")[0].innerHTML = cuts.join(" ")
-         xmlDoc.getElementsByTagName("ridges")[0].innerHTML = ridges.join(" ")
-         xmlDoc.getElementsByTagName("valleys")[0].innerHTML = valleys.join(" ")*/
 
-    saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
+    var stateIndex = $('.state-item').length
+    addState(stateIndex)
+    $('.state-item').last().trigger("click");
+
 }
 
+function addState(stateIndex){
+    $('.states-list')
+        .append('<li class="list-group-item state-item" onclick="parseEdgeTypeByIndex('+stateIndex+')">State ' + stateIndex +
+                '<span class="glyphicon glyphicon-remove" onclick="removeState(event)"></li>')
+        .on('click','.state-item', function(event){
+        $('.state-item').removeClass('active')
+        $(event.target).addClass('active')
+    });
 
-function getEdgeTypesData() {
-
-    xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("GET", meshURL, true);
-    xmlhttp.send();
-
-    xmlhttp.onreadystatechange = function () {
-        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            console.log(xmlhttp.responseXML)
-            xmlDoc = xmlhttp.responseXML;
-            loadEdgeTypes();
-        }
-    }
 }
 
-function loadEdgeTypes() {
-    var edgeTypeTag = xmlDoc.getElementsByTagName("edge_type")[0]
-    if (edgeTypeTag) {
-        parseEdgeType("cuts", "Cut");
-        parseEdgeType("ridges", "Ridge");
-        parseEdgeType("valleys", "Valley");
-    }
-}
+function removeState(event){
+    var index = $(event.target.parentElement).index()
+    var node = xmlDoc.getElementsByTagName("edge_type")[index]
+    node.parentElement.removeChild(node)
+    $(event.target.parentElement).remove();
 
-function parseEdgeType(tag, label) {
-    var ridges = xmlDoc.getElementsByTagName(tag)[0].innerHTML.split(" ");
-    for (var i = 0; i < ridges.length; i++) {
-        var index = parseInt(ridges[i])
-        if (!isNaN(index)) {
-            selected.push(edges.children[index])
-            labelEdge(label)
-        }
-    }
-}
 
+}
 
 function handleFileSelect(evt) {
 
@@ -730,7 +772,7 @@ function handleFileSelect(evt) {
             meshURL = e.target.result
             loader.load(meshURL, function (collada) {
 
-
+                $('.states-list').empty()
                 dae = collada.scene;
                 var geoMesh = dae.children[0].children[0].geometry
                 hds = halfedgeFromMesh(geoMesh)

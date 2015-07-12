@@ -1,7 +1,7 @@
-var camera, scene, renderer, controls, clock, trackballControls;
+var camera, scene, renderer, controls, clock, trackballControls, selectBoxEnabled = true;
 var mesh, hds, edges, mouse, raycaster, selected = [],
-    meshURL = "./downloads/06.vallyes_ridges_cuts2.dae",
-   // meshURL = "./models/06_TokyoIT.dae",
+    // meshURL = "./downloads/06.states.dae",
+    meshURL = "./models/06_states2.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -21,6 +21,7 @@ loader.load(meshURL, function (collada) {
 
 
     dae = collada.scene;
+    geoMesh = dae.children[0].children[0].geometry
 
     /* dae.traverse(function (child) {
 
@@ -180,7 +181,11 @@ function allFlat() {
 // Rebuilds all objects
 // 
 function resetObjects() {
-    hds = paperHalfedge(5, 5, 100);
+    //hds = paperHalfedge(5, 5, 100);
+    //objectsFromHds();
+
+    $('.state-item').removeClass('active')
+    hds = halfedgeFromMesh(geoMesh)
     objectsFromHds();
 }
 
@@ -196,8 +201,9 @@ function getActiveMode() {
         var checked = sel.property("checked");
         if (checked) activeGui = value;
         gui.select("div." + value + "Gui").style("visibility", function () {
-            if (checked) return "visible";
-            return "hidden";
+            //if (checked) return "visible";
+            //return "hidden";
+            return "visible";
         })
     })
     return activeGui;
@@ -222,8 +228,11 @@ function initInterface() {
         .data(edgeButtonLabel)
         .enter()
         .append("button")
-        .attr("class", "guiButton")
+        .attr("class", "btn btn-default guiButton")
         .text(function (d) {
+            return d
+        })
+        .attr("id", function (d) {
             return d
         })
         .on("click", function (d, i) {
@@ -238,13 +247,13 @@ function initInterface() {
         .attr("name", "guibox")
         .attr("value", "anim");
     gui.append("span").text(" Animation");
-    var animGui = gui.append("div");//.classed("animGui", true);//.style("visibility", "hidden");
+    var animGui = gui.append("div"); //.classed("animGui", true);//.style("visibility", "hidden");
     var animButtonLabel = ["Relax", "Auto-Relax"];
     var animButtons = animGui.selectAll("button.guiButton")
         .data(animButtonLabel)
         .enter()
         .append("button")
-        .attr("class", "guiButton")
+        .attr("class", "btn btn-default guiButton")
         .text(function (d) {
             return d
         })
@@ -282,7 +291,7 @@ function objectsFromHds() {
         side: THREE.DoubleSide
     });
     mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
+    // scene.add(mesh);
 
     /* Add cylinders for the edges of mesh */
     edges = new THREE.Object3D();
@@ -301,12 +310,14 @@ function init() {
     });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0xA0A0F0);
-    document.body.appendChild(renderer.domElement);
+    renderer.setClearColor(0xc3c3c3);
+    document.getElementById("stage3D").appendChild(renderer.domElement);
+
+    setSelectionCanvas();
 
     // Define Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = 400;
+    camera.position.z = 1000;
 
     // Define scene
     scene = new THREE.Scene();
@@ -322,8 +333,8 @@ function init() {
     scene.add(ambientLight);
 
     var lights = [];
-    lights[0] = new THREE.PointLight(0xaaaaaa, 1, 0);
-    lights[1] = new THREE.PointLight(0xaaaaaa, 1, 0);
+    lights[0] = new THREE.PointLight(0xaaffff, 0.5, 0);
+    lights[1] = new THREE.PointLight(0xffcccc, 0.5, 0);
 
     lights[0].position.set(0, 200, 80);
     lights[1].position.set(-100, -200, -100);
@@ -331,8 +342,20 @@ function init() {
     scene.add(lights[0]);
     scene.add(lights[1]);
 
+
+    var geometry = new THREE.SphereGeometry(300, 10, 10);
+    var material = new THREE.MeshLambertMaterial({
+        color: 0xffff00,
+        wireframe: false
+    });
+    /* sphere = new THREE.Mesh(geometry, material);
+     scene.add(sphere);
+
+     var bbox = new THREE.BoundingBoxHelper(sphere, 0xff0000);
+     bbox.update();
+     scene.add(bbox);*/
+
     /* Define the object to be viewed */
-    var geoMesh = dae.children[0].children[0].geometry
     hds = halfedgeFromMesh(geoMesh)
     objectsFromHds();
     // resetObjects();
@@ -344,14 +367,28 @@ function init() {
 
     /* The clock and trackball */
     clock = new THREE.Clock();
-    trackballControls = new THREE.TrackballControls(camera);
-
+    trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
+    // trackballControls.enabled = false
     // Callbacks
     window.addEventListener('resize', onWindowResize, false);
     mouse = new THREE.Vector2();
     window.addEventListener('click', onWindowClick, false);
-    window.addEventListener('mousemove', onWindowMouseMove, false);
+    window.addEventListener('mousemove', onWindowMouseMove, true);
+    window.addEventListener('mousedown', onWindowMouseDown, true);
+    window.addEventListener('mouseup', onWindowMouseUp, true);
 
+}
+
+function setSelectionCanvas() {
+    //Selection anvas
+    var c = document.getElementById("myCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    ctx = c.getContext("2d");
+    ctx.setLineDash([15, 5]);
+    ctx.strokeStyle = "rgba(214, 115, 0, 0.74)";
+    ctx.lineWidth = 2.0;
 }
 
 // Window resize callback
@@ -359,14 +396,99 @@ function onWindowResize() {
 
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-
     renderer.setSize(window.innerWidth, window.innerHeight);
+    setSelectionCanvas();
 
 }
 
-// Window mouse move callback
+var initX = -1,
+    initY = -1;
+
+function onWindowMouseDown(event) {
+    if (event.shiftKey) {
+        trackballControls.enabled = false
+        document.body.style.cursor = 'crosshair';
+        initX = event.clientX
+        initY = event.clientY
+    }
+
+}
+
+function onWindowMouseUp(event) {
+    if (!trackballControls.enabled) {
+        boxSelectObjects(initX, initY, event.clientX, event.clientY)
+        trackballControls.enabled = true
+        initX = -1
+        initY = -1
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        document.body.style.cursor = 'pointer';
+
+    }
+}
+
+function boxSelectObjects(x, y, x2, y2){
+
+    var selectionBox = new THREE.Box2(new THREE.Vector2(x, y), new THREE.Vector2(x2, y2))
+    edges.children.forEach(function(edge){
+
+        if(selectionContainsObject(selectionBox, edge)){
+            edge.material.gapSize = 2;
+            selected.push(edge);
+        }
+    });
+
+}
+
+
+function selectionContainsObject(selectBox, object) {
+
+    object.geometry.computeBoundingBox();
+    var mesh3DBox = object.geometry.boundingBox;
+
+    var min = mesh3DBox.min;
+    var max = mesh3DBox.max;
+
+    var points = []
+    points.push(screenCoordFrom3DPoint(new THREE.Vector3(max.x, min.y, min.z)));
+    points.push(screenCoordFrom3DPoint(new THREE.Vector3(min.x, max.y, min.z)));
+    points.push(screenCoordFrom3DPoint(new THREE.Vector3(min.x, min.y, max.z)));
+    points.push(screenCoordFrom3DPoint(new THREE.Vector3(min.x, max.y, max.z)));
+    points.push(screenCoordFrom3DPoint(new THREE.Vector3(max.x, min.y, max.z)));
+    points.push(screenCoordFrom3DPoint(new THREE.Vector3(max.x, max.y, min.z)));
+    points.push(screenCoordFrom3DPoint(mesh3DBox.min));
+    points.push(screenCoordFrom3DPoint(mesh3DBox.max));
+
+    var bbox = new THREE.Box2()
+    bbox.setFromPoints(points)
+
+
+    return selectBox.containsBox(bbox)
+
+}
+
+function screenCoordFrom3DPoint(point3D) {
+
+    var vector = point3D.project(camera);
+
+    vector.x = (vector.x + 1) / 2 * window.innerWidth;
+    vector.y = -((vector.y - 1) / 2 * window.innerHeight);
+
+    return vector;
+}
+
+function get3dPoint(x, y, z) {
+
+    x = (x / window.innerWidth) * 2 - 1;
+    y = -(y / window.innerHeight) * 2 + 1;
+
+    var vector = new THREE.Vector3(x, y, z);
+    return vector.unproject(camera);
+}
+
+
 function onWindowClick(event) {
 
+    //boxSelectObjects(0, 0, 0, 0);
     //event.preventDefault();
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
@@ -375,6 +497,7 @@ function onWindowClick(event) {
     // Add clicked object to selection
     selectObject();
 
+
 }
 
 var highlighted;
@@ -382,6 +505,11 @@ var highlightMaterialColor = 0x000000;
 var saveMaterialColor;
 
 function onWindowMouseMove(event) {
+
+    if (initX > -1 || initY > -1) {
+        addSelection(event.clientX, event.clientY)
+    }
+
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -405,6 +533,15 @@ function onWindowMouseMove(event) {
 
 }
 
+function addSelection(moveX, moveY) {
+    if (!trackballControls.enabled) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.beginPath();
+        ctx.rect(initX, initY, moveX - initX, moveY - initY);
+        ctx.stroke();
+        window.getSelection().removeAllRanges();
+    }
+}
 
 
 /* Selects/deselects objects of the scene */
@@ -616,7 +753,61 @@ var saveData = (function () {
 
 function downloadMesh() {
 
-    //Save edge types data
+    saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
+}
+
+
+function getEdgeTypesData() {
+
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", meshURL, true);
+    xmlhttp.send();
+
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseXML)
+            xmlDoc = xmlhttp.responseXML;
+            loadEdgeTypes();
+        }
+    }
+}
+
+function loadEdgeTypes() {
+
+    var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type")
+
+    for (var i = 0; i < edgeTypeTags.length; i++) {
+        addState(i);
+    }
+
+    $('.state-item').last().trigger("click");
+
+    parseEdgeTypeByIndex(edgeTypeTags.length - 1)
+}
+
+function parseEdgeTypeByIndex(index) {
+    console.log("index " + index);
+    allFlat();
+    var edgeTypeNode = xmlDoc.getElementsByTagName("edge_type")[index]
+    parseEdgeType(edgeTypeNode, "cuts", "Cut");
+    parseEdgeType(edgeTypeNode, "ridges", "Ridge");
+    parseEdgeType(edgeTypeNode, "valleys", "Valley");
+}
+
+
+function parseEdgeType(edgeTypeNode, tag, label) {
+    var ridges = edgeTypeNode.getElementsByTagName(tag)[0].innerHTML.split(" ");
+    for (var i = 0; i < ridges.length; i++) {
+        var index = parseInt(ridges[i])
+        if (!isNaN(index)) {
+            selected.push(edges.children[index])
+            labelEdge(label)
+        }
+    }
+}
+
+function addNewState() {
+
     var cuts = [],
         ridges = [],
         valleys = [];
@@ -639,18 +830,22 @@ function downloadMesh() {
 
     });
 
-    if (!xmlDoc.getElementsByTagName("edge_type")[0]) {
+    if (!xmlDoc.getElementsByTagName("extra")[0]) {
         var geometryTag = xmlDoc.getElementsByTagName("geometry")[0]
         geometryTag.appendChild(xmlDoc.createElement("extra"))
-            .appendChild(xmlDoc.createElement("edge_type"))
     }
 
+    var edgeTypeNode = xmlDoc.createElement("edge_type");
+
+    xmlDoc
+        .getElementsByTagName("extra")[0]
+        .appendChild(edgeTypeNode)
+
     function addEdgeTypesToXML(tag, data) {
-        if (xmlDoc.getElementsByTagName(tag)[0]) {
-            xmlDoc.getElementsByTagName(tag)[0].innerHTML = data
+        if (edgeTypeNode.getElementsByTagName(tag)[0]) {
+            edgeTypeNode.getElementsByTagName(tag)[0].innerHTML = data
         } else {
-            var edgeTypeTag = xmlDoc.getElementsByTagName("edge_type")[0]
-            edgeTypeTag.appendChild(xmlDoc.createElement(tag))
+            edgeTypeNode.appendChild(xmlDoc.createElement(tag))
                 .innerHTML = data
         }
     }
@@ -658,43 +853,73 @@ function downloadMesh() {
     addEdgeTypesToXML("cuts", cuts.join(" "))
     addEdgeTypesToXML("ridges", ridges.join(" "))
     addEdgeTypesToXML("valleys", valleys.join(" "))
-        /* xmlDoc.getElementsByTagName("cuts")[0].innerHTML = cuts.join(" ")
-         xmlDoc.getElementsByTagName("ridges")[0].innerHTML = ridges.join(" ")
-         xmlDoc.getElementsByTagName("valleys")[0].innerHTML = valleys.join(" ")*/
 
-    saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
+    var stateIndex = $('.state-item').length
+    addState(stateIndex)
+    $('.state-item').last().trigger("click");
+
 }
 
+function addState(stateIndex) {
+    $('.states-list')
+        .append('<li class="list-group-item state-item" onclick="parseEdgeTypeByIndex(' + stateIndex + ')">State ' + stateIndex +
+            '<span class="glyphicon glyphicon-remove" onclick="removeState(event)"></li>')
+        .on('click', '.state-item', function (event) {
+            $('.state-item').removeClass('active')
+            $(event.target).addClass('active')
+        });
 
-function getEdgeTypesData() {
-
-    xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("GET", meshURL, true);
-    xmlhttp.send();
-
-    xmlhttp.onreadystatechange = function () {
-        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            console.log(xmlhttp.responseXML)
-            xmlDoc = xmlhttp.responseXML;
-
-            var edgeTypeTag = xmlDoc.getElementsByTagName("edge_type")[0]
-            if (edgeTypeTag) {
-                parseEdgeType("cuts", "Cut");
-                parseEdgeType("ridges", "Ridge");
-                parseEdgeType("valleys", "Valley");
-            }
-
-        }
-    }
 }
 
-function parseEdgeType(tag, label) {
-    var ridges = xmlDoc.getElementsByTagName(tag)[0].innerHTML.split(" ");
-    for (var i = 0; i < ridges.length; i++) {
-        var index = parseInt(ridges[i])
-        if (!isNaN(index)) {
-            selected.push(edges.children[index])
-            labelEdge(label)
-        }
-    }
+function removeState(event) {
+    var index = $(event.target.parentElement).index()
+    var node = xmlDoc.getElementsByTagName("edge_type")[index]
+    node.parentElement.removeChild(node)
+    $(event.target.parentElement).remove();
+
+
 }
+
+function handleFileSelect(evt) {
+
+    var file = evt.target.files[0]; // FileList object
+
+    // Loop through the FileList and render image files as thumbnails.
+    /* for (var i = 0, f; f = files[i]; i++) {
+
+         // Only process image files.
+         /*if (!f.type.match('application/xml')) {
+                 continue;
+               }*/
+
+    var reader = new FileReader();
+
+    // Closure to capture the file information.
+    reader.onload = (function (theFile) {
+        return function (e) {
+
+            meshURL = e.target.result
+            loader.load(meshURL, function (collada) {
+
+                $('.states-list').empty()
+                dae = collada.scene;
+                var geoMesh = dae.children[0].children[0].geometry
+                hds = halfedgeFromMesh(geoMesh)
+                objectsFromHds();
+                getEdgeTypesData();
+
+
+
+            });
+
+
+        };
+    })(file);
+
+    // Read in the image file as a data URL.
+    reader.readAsDataURL(file);
+
+};
+
+
+document.getElementById('files').addEventListener('change', handleFileSelect, false);

@@ -5,6 +5,12 @@
     <title>Origami test</title>
     <meta charset="utf-8">
     <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+        }
+
         body {
             margin: 0px;
             overflow: hidden;
@@ -64,15 +70,24 @@
             margin-left: 12px;
         }
 
-        .state-item .glyphicon-remove{
+        .state-item .glyphicon-remove {
             float: right;
             visibility: hidden;
         }
-        .active .glyphicon-remove{
-           visibility: visible;
+
+        .active .glyphicon-remove {
+            visibility: visible;
         }
 
+        #myCanvas {
+            height: 100vh;
+            width: 100vw;
+            position: absolute;
+        }
 
+        #stage3D {
+            position: absolute;
+        }
     </style>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
@@ -82,6 +97,10 @@
 </head>
 
 <body>
+    <div id="stage3D">
+    </div>
+    <canvas id="myCanvas">
+        Your browser does not support the HTML5 canvas tag.</canvas>
     <div class="bg"></div>
     <form>
         <input type="file" id="files" name="files[]" class="btn btn-default upload " />
@@ -90,6 +109,7 @@
 
 
     <div class="states">
+
         <div class="row">
             <h4 class="col-lg-9">States</h4>
 
@@ -97,30 +117,30 @@
 
         </div>
         <ul class="list-group states-list">
-<!--
+            <!--
             <span class="glyphicon glyphicon-remove" style="color: red;" aria-hidden="true"></span>
 
 -->
         </ul>
     </div>
 
-    <div id="stage3D">
-        <a/div>
 
 
-            <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
-            <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.5/js/bootstrap-select.min.js"></script>
 
-            <script src="./d3.min.js"></script>
-            <script src="./three.min.js"></script>
-            <script src="./TrackballControls.js"></script>
-            <script src="./pvector.js"></script>
-            <script src="./halfedge.js"></script>
-            <script src="./relax.js"></script>
-            <script src="./constraints.js"></script>
-            <script src="./ColladaLoader.js"></script>
-            <script src="./init.js"></script>
+
+    <script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.6.5/js/bootstrap-select.min.js"></script>
+
+    <script src="./d3.min.js"></script>
+    <script src="./three.min.js"></script>
+    <script src="./TrackballControls.js"></script>
+    <script src="./pvector.js"></script>
+    <script src="./halfedge.js"></script>
+    <script src="./relax.js"></script>
+    <script src="./constraints.js"></script>
+    <script src="./ColladaLoader.js"></script>
+    <script src="./init.js"></script>
 
 
 </body>

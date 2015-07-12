@@ -1,7 +1,7 @@
 var camera, scene, renderer, controls, clock, trackballControls, selectBoxEnabled = true;
 var mesh, hds, edges, mouse, raycaster, selected = [],
     // meshURL = "./downloads/06.states.dae",
-    meshURL = "./models/06_states2.dae",
+    meshURL = "./models/01_RoyalCrescent2b.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -291,7 +291,7 @@ function objectsFromHds() {
         side: THREE.DoubleSide
     });
     mesh = new THREE.Mesh(geometry, material);
-    // scene.add(mesh);
+    scene.add(mesh);
 
     /* Add cylinders for the edges of mesh */
     edges = new THREE.Object3D();
@@ -317,15 +317,13 @@ function init() {
 
     // Define Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = 1000;
+    camera.position.z = -1000;
 
     // Define scene
     scene = new THREE.Scene();
 
 
-
-
-    //scene.add(dae);
+    //scene.add(geoMesh);
 
 
     // Define lights
@@ -343,11 +341,13 @@ function init() {
     scene.add(lights[1]);
 
 
-    var geometry = new THREE.SphereGeometry(300, 10, 10);
+  /*  var geometry = new THREE.SphereGeometry(300, 10, 10);
     var material = new THREE.MeshLambertMaterial({
         color: 0xffff00,
         wireframe: false
     });
+
+    //scene.add
     /* sphere = new THREE.Mesh(geometry, material);
      scene.add(sphere);
 
@@ -400,6 +400,18 @@ function onWindowResize() {
     setSelectionCanvas();
 
 }
+
+
+
+document.addEventListener('keydown', function(event) {
+    if(event.keyCode == 96) {
+        trackballControls.reset();
+    }
+
+});
+
+
+
 
 var initX = -1,
     initY = -1;

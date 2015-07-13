@@ -1,4 +1,4 @@
-var camera, scene, renderer, controls, clock, trackballControls, selectBoxEnabled = true;
+var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = false;
 var mesh, hds, edges, mouse, raycaster, selected = [],
     // meshURL = "./downloads/06.states.dae",
     meshURL = "./models/01_RoyalCrescent2b.dae",
@@ -402,13 +402,30 @@ function onWindowResize() {
 }
 
 
-
-document.addEventListener('keydown', function(event) {
-    if(event.keyCode == 96) {
+document.addEventListener('keydown', function (event) {
+    if (event.keyCode == 96) {
         trackballControls.reset();
     }
 
+    if (event.keyCode == 72) {
+
+        console.log("toggle flat edges");
+        toggleFlatEdges();
+
+    }
+
 });
+
+function toggleFlatEdges() {
+
+    hideFlatEdges = !hideFlatEdges;
+
+    edges.children.forEach(function (edge) {
+        if (edge.halfedge.edgeType == "Flat") {
+            edge.visible = hideFlatEdges
+        }
+    });
+}
 
 
 

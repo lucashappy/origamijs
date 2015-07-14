@@ -1,4 +1,4 @@
-var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = false;
+var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = false, hideSidebar = false;
 var mesh, hds, edges, mouse, raycaster, selected = [],
     // meshURL = "./downloads/06.states.dae",
     meshURL = "./models/01_RoyalCrescent2b.dae",
@@ -200,11 +200,11 @@ function getActiveMode() {
         var value = sel.attr("value");
         var checked = sel.property("checked");
         if (checked) activeGui = value;
-        gui.select("div." + value + "Gui").style("visibility", function () {
+      /*  gui.select("div." + value + "Gui").style("visibility", function () {
             //if (checked) return "visible";
             //return "hidden";
             return "visible";
-        })
+        })*/
     })
     return activeGui;
 }
@@ -408,10 +408,29 @@ document.addEventListener('keydown', function (event) {
     }
 
     if (event.keyCode == 72) {
-
         console.log("toggle flat edges");
         toggleFlatEdges();
 
+    }
+
+    if (event.keyCode == 75) {
+        console.log("toggle sidebar");
+        hideSidebar = !hideSidebar;
+        if(hideSidebar){
+        document.getElementsByClassName("bg")[0].style.visibility = "hidden";
+            document.getElementsByClassName("gui")[0].style.visibility = "hidden";
+            document.getElementsByClassName("form")[0].style.visibility = "hidden";
+            document.getElementsByClassName("states")[0].style.visibility = "hidden";
+            document.getElementsByClassName("edgeGui")[0].style.visibility = "hidden";
+        }
+        else{
+             document.getElementsByClassName("bg")[0].style.visibility = "visible";
+             document.getElementsByClassName("gui")[0].style.visibility = "visible";
+             document.getElementsByClassName("states")[0].style.visibility = "visible";
+             document.getElementsByClassName("form")[0].style.visibility = "visible";
+             document.getElementsByClassName("edgeGui")[0].style.visibility = "visible";
+
+        }
     }
 
 });

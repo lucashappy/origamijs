@@ -1,4 +1,11 @@
-var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = false;
+var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = true,
+    drawingMode = true,
+    hideSidebar = false,
+    drawExternalVertices = [],
+    drawInternalVertices = [],
+    drawVertices = [],
+    originX = 0,
+    originY = 0;
 var mesh, hds, edges, mouse, raycaster, selected = [],
     // meshURL = "./downloads/06.states.dae",
     meshURL = "./models/01_RoyalCrescent2b.dae",
@@ -39,7 +46,7 @@ loader.load(meshURL, function (collada) {
 
     initInterface();
     init();
-    animate();
+    update();
 });
 
 
@@ -149,11 +156,11 @@ function relaxOneStep() {
         var f = (k + 1 + n) / (n + n);
         for (var i = 0; i < dc.length; i++) {
             var c = dc[i];
-            c.relax();
+            c.relax(f);
         }
         for (var i = 0; i < lc.length; i++) {
             var c = lc[i];
-            c.relax();
+            c.relax(f);
         }
     }
     hdsUpdateVertexVectors(hds);
@@ -180,12 +187,14 @@ function allFlat() {
 // 
 // Rebuilds all objects
 // 
-function resetObjects() {
-    //hds = paperHalfedge(5, 5, 100);
-    //objectsFromHds();
+function resetObjects(newMesh, fromDraw) {
 
-    $('.state-item').removeClass('active')
-    hds = halfedgeFromMesh(geoMesh)
+    $(".gui input[value='edge']").click();
+    $('.states-list').empty()
+    if (fromDraw)
+        hds = halfedgeFromDraw(newMesh);
+    else
+        hds = halfedgeFromMesh(newMesh);
     objectsFromHds();
 }
 
@@ -200,11 +209,11 @@ function getActiveMode() {
         var value = sel.attr("value");
         var checked = sel.property("checked");
         if (checked) activeGui = value;
-        gui.select("div." + value + "Gui").style("visibility", function () {
-            //if (checked) return "visible";
-            //return "hidden";
-            return "visible";
-        })
+        /*  gui.select("div." + value + "Gui").style("visibility", function () {
+              //if (checked) return "visible";
+              //return "hidden";
+              return "visible";
+          })*/
     })
     return activeGui;
 }
@@ -273,6 +282,35 @@ function initInterface() {
             scene.remove(edges);
         }
     })
+
+
+    //Mode select
+    $('#optionDraw').on('change', function () {
+        console.log("change");
+        drawingMode = true
+        $('#stageDraw').fadeIn()
+    })
+
+    $('#option3D').on('change', function () {
+        console.log("change2D");
+        drawingMode = false
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        $('#stageDraw').fadeOut()
+        update()
+    })
+    $('#triangulateBtn').on('click', function () {
+        triangulate()
+    })
+
+
+}
+
+function triangulate() {
+    console.log("Triangulate!");
+    var swctx = new poly2tri.SweepContext(drawExternalVertices);
+    swctx.addPoints(drawInternalVertices);
+    swctx.triangulate();
+    resetObjects(swctx, true)
 }
 
 // 
@@ -341,19 +379,19 @@ function init() {
     scene.add(lights[1]);
 
 
-  /*  var geometry = new THREE.SphereGeometry(300, 10, 10);
-    var material = new THREE.MeshLambertMaterial({
-        color: 0xffff00,
-        wireframe: false
-    });
+    /*  var geometry = new THREE.SphereGeometry(300, 10, 10);
+      var material = new THREE.MeshLambertMaterial({
+          color: 0xffff00,
+          wireframe: false
+      });
 
-    //scene.add
-    /* sphere = new THREE.Mesh(geometry, material);
-     scene.add(sphere);
+      //scene.add
+      /* sphere = new THREE.Mesh(geometry, material);
+       scene.add(sphere);
 
-     var bbox = new THREE.BoundingBoxHelper(sphere, 0xff0000);
-     bbox.update();
-     scene.add(bbox);*/
+       var bbox = new THREE.BoundingBoxHelper(sphere, 0xff0000);
+       bbox.update();
+       scene.add(bbox);*/
 
     /* Define the object to be viewed */
     hds = halfedgeFromMesh(geoMesh)
@@ -389,7 +427,13 @@ function setSelectionCanvas() {
     ctx.setLineDash([15, 5]);
     ctx.strokeStyle = "rgba(214, 115, 0, 0.74)";
     ctx.lineWidth = 2.0;
+    drawingModeCanvas()
+
 }
+
+
+
+
 
 // Window resize callback
 function onWindowResize() {
@@ -398,20 +442,39 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     setSelectionCanvas();
-
+    update();
 }
 
 
 document.addEventListener('keydown', function (event) {
     if (event.keyCode == 96) {
         trackballControls.reset();
+        update();
     }
 
     if (event.keyCode == 72) {
-
         console.log("toggle flat edges");
         toggleFlatEdges();
 
+    }
+
+    if (event.keyCode == 75) {
+        console.log("toggle sidebar");
+        hideSidebar = !hideSidebar;
+        if (hideSidebar) {
+            document.getElementsByClassName("bg")[0].style.visibility = "hidden";
+            document.getElementsByClassName("gui")[0].style.visibility = "hidden";
+            document.getElementsByClassName("form")[0].style.visibility = "hidden";
+            document.getElementsByClassName("states")[0].style.visibility = "hidden";
+            document.getElementsByClassName("edgeGui")[0].style.visibility = "hidden";
+        } else {
+            document.getElementsByClassName("bg")[0].style.visibility = "visible";
+            document.getElementsByClassName("gui")[0].style.visibility = "visible";
+            document.getElementsByClassName("states")[0].style.visibility = "visible";
+            document.getElementsByClassName("form")[0].style.visibility = "visible";
+            document.getElementsByClassName("edgeGui")[0].style.visibility = "visible";
+
+        }
     }
 
 });
@@ -425,6 +488,7 @@ function toggleFlatEdges() {
             edge.visible = hideFlatEdges
         }
     });
+    update();
 }
 
 
@@ -434,33 +498,64 @@ var initX = -1,
     initY = -1;
 
 function onWindowMouseDown(event) {
+
     if (event.shiftKey) {
-        trackballControls.enabled = false
-        document.body.style.cursor = 'crosshair';
-        initX = event.clientX
-        initY = event.clientY
+
+        if (drawingMode) {
+            document.body.style.cursor = 'crosshair';
+            initX = event.clientX
+            initY = event.clientY
+        } else {
+            trackballControls.enabled = false
+            document.body.style.cursor = 'crosshair';
+            initX = event.clientX
+            initY = event.clientY
+        }
+
     }
 
 }
 
 function onWindowMouseUp(event) {
-    if (!trackballControls.enabled) {
-        boxSelectObjects(initX, initY, event.clientX, event.clientY)
-        trackballControls.enabled = true
-        initX = -1
-        initY = -1
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        document.body.style.cursor = 'pointer';
 
+    console.log("mouse up");
+
+    if (drawingMode && (initX != -1 || initY != -1)) {
+        var x = initX,
+            y = initY,
+            w = event.clientX - initX,
+            h = event.clientY - initY;
+
+        //save points
+        drawInternalVertices = []
+        drawInternalVertices.push(formatPoint(x, y));
+        drawInternalVertices.push(formatPoint(x + w, y));
+        drawInternalVertices.push(formatPoint(x + w, y + (h / 2)));
+        drawInternalVertices.push(formatPoint(x + w, y + h));
+        drawInternalVertices.push(formatPoint(x, y + h));
+        drawInternalVertices.push(formatPoint(x, y + (h / 2)));
+
+    } else {
+
+        if (!trackballControls.enabled) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            boxSelectObjects(initX, initY, event.clientX, event.clientY);
+            trackballControls.enabled = true;
+            update();
+        }
     }
+    initX = -1
+    initY = -1
+    document.body.style.cursor = 'pointer';
+
 }
 
-function boxSelectObjects(x, y, x2, y2){
+function boxSelectObjects(x, y, x2, y2) {
 
     var selectionBox = new THREE.Box2(new THREE.Vector2(x, y), new THREE.Vector2(x2, y2))
-    edges.children.forEach(function(edge){
+    edges.children.forEach(function (edge) {
 
-        if(selectionContainsObject(selectionBox, edge)){
+        if (selectionContainsObject(selectionBox, edge)) {
             edge.material.gapSize = 2;
             selected.push(edge);
         }
@@ -525,7 +620,7 @@ function onWindowClick(event) {
 
     // Add clicked object to selection
     selectObject();
-
+    update();
 
 }
 
@@ -560,15 +655,26 @@ function onWindowMouseMove(event) {
         }
     }
 
+    update();
 }
 
 function addSelection(moveX, moveY) {
-    if (!trackballControls.enabled) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.beginPath();
-        ctx.rect(initX, initY, moveX - initX, moveY - initY);
-        ctx.stroke();
-        window.getSelection().removeAllRanges();
+
+
+    if (drawingMode) {
+        draw.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        draw.beginPath();
+        draw.rect(initX, initY, moveX - initX, moveY - initY);
+        draw.stroke();
+
+    } else {
+        if (!trackballControls.enabled) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.beginPath();
+            ctx.rect(initX, initY, moveX - initX, moveY - initY);
+            ctx.stroke();
+            window.getSelection().removeAllRanges();
+        }
     }
 }
 
@@ -591,19 +697,22 @@ function selectObject() {
             selected.push(obj);
         }
     }
+
 }
 
-function animate() {
 
-    var delta = clock.getDelta();
-    trackballControls.update(delta);
-    if (getActiveMode() == "anim" && relaxCount > 0) {
-        relaxOneStep();
-        relaxCount--;
+function update() {
+
+    if (!drawingMode) {
+        var delta = clock.getDelta();
+        trackballControls.update(delta);
+        if (getActiveMode() == "anim" && relaxCount > 0) {
+            relaxOneStep();
+            relaxCount--;
+        }
+
+        renderer.render(scene, camera);
     }
-
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
 
 }
 
@@ -764,6 +873,25 @@ function halfedgeFromMesh(mesh) {
     return hds;
 }
 
+function halfedgeFromDraw(swctx) {
+
+    var fac = [],
+        vtx = [];
+
+    swctx.triangles_.forEach(function (face) {
+        fac.push([face.points_[0].id, face.points_[1].id, face.points_[2].id])
+    });
+
+    vtx.length = swctx.points_.length
+    swctx.points_.forEach(function (vertex) {
+        vtx[vertex.id] = new PVector(vertex.x, vertex.y, 0);
+    });
+
+    var hds = new HalfedgeDS(fac, vtx);
+    hdsCreateVertexVectors(hds);
+    return hds;
+}
+
 var saveData = (function () {
     var a = document.createElement("a");
     document.body.appendChild(a);
@@ -797,6 +925,7 @@ function getEdgeTypesData() {
             console.log(xmlhttp.responseXML)
             xmlDoc = xmlhttp.responseXML;
             loadEdgeTypes();
+            update()
         }
     }
 }
@@ -930,11 +1059,10 @@ function handleFileSelect(evt) {
             meshURL = e.target.result
             loader.load(meshURL, function (collada) {
 
-                $('.states-list').empty()
+
                 dae = collada.scene;
                 var geoMesh = dae.children[0].children[0].geometry
-                hds = halfedgeFromMesh(geoMesh)
-                objectsFromHds();
+                resetObjects(geoMesh)
                 getEdgeTypesData();
 
 
@@ -952,3 +1080,90 @@ function handleFileSelect(evt) {
 
 
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+function drawingModeCanvas() {
+
+    var c = document.getElementById("bgCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    var bgctx = c.getContext("2d");
+
+    bgctx.fillStyle = "white"
+    bgctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
+
+    //papersheet
+    bgctx.setLineDash([])
+    bgctx.strokeStyle = "gray"
+    bgctx.lineWidth = 1.0
+
+    var h = window.innerHeight - 60,
+        w = (2 / 3.0) * h,
+        x = (window.innerWidth - w) / 2.0,
+        y = 20;
+
+    originX = x + (w / 2);
+    originY = y + (h / 2);
+
+
+    bgctx.rect(x, y, w, h)
+    bgctx.fill()
+    bgctx.stroke()
+
+
+    //middle fold
+    bgctx.strokeStyle = "aqua"
+    bgctx.beginPath()
+    bgctx.moveTo(x, (h / 2.0) + y)
+    bgctx.lineTo(x + w, (h / 2.0) + y)
+    bgctx.stroke()
+    bgctx.closePath()
+
+
+
+
+    //Add page vertices to triangulation
+    drawExternalVertices = []
+    drawExternalVertices.push(formatPoint(x, y));
+    drawExternalVertices.push(formatPoint(x + w, y));
+    drawExternalVertices.push(formatPoint(x + w, y + (h / 2)));
+    drawExternalVertices.push(formatPoint(x + w, y + h));
+    drawExternalVertices.push(formatPoint(x, y + h));
+    drawExternalVertices.push(formatPoint(x, y + (h / 2)));
+
+
+    //Draw Layer
+    var c = document.getElementById("drawCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    draw = c.getContext("2d");
+
+}
+
+
+function formatPoint(px, py) {
+    var nx = -(px - originX), //why?
+        ny = -(py - originY);
+
+    return {
+        x: nx,
+        y: ny,
+        id: drawExternalVertices.length + drawInternalVertices.length
+    }
+}
+
+function loadModel(fileName) {
+
+    meshURL = "./models/" + fileName
+    var loader = new THREE.ColladaLoader();
+    loader.options.convertUpAxis = true;
+    loader.load(meshURL, function (collada) {
+
+        dae = collada.scene;
+        geoMesh = dae.children[0].children[0].geometry
+        resetObjects(geoMesh);
+        getEdgeTypesData();
+        update();
+    });
+}

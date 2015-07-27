@@ -1,7 +1,11 @@
 var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = true,
     drawingMode = true,
     hideSidebar = false,
-    drawExternalVertices, drawInternVertices;
+    drawExternalVertices = [],
+    drawInternalVertices = [],
+    drawVertices = [],
+    originX = 0,
+    originY = 0;
 var mesh, hds, edges, mouse, raycaster, selected = [],
     // meshURL = "./downloads/06.states.dae",
     meshURL = "./models/01_RoyalCrescent2b.dae",
@@ -183,12 +187,14 @@ function allFlat() {
 // 
 // Rebuilds all objects
 // 
-function resetObjects() {
-    //hds = paperHalfedge(5, 5, 100);
-    //objectsFromHds();
+function resetObjects(newMesh, fromDraw) {
 
-    $('.state-item').removeClass('active')
-    hds = halfedgeFromMesh(geoMesh)
+    $(".gui input[value='edge']").click();
+    $('.states-list').empty()
+    if (fromDraw)
+        hds = halfedgeFromDraw(newMesh);
+    else
+        hds = halfedgeFromMesh(newMesh);
     objectsFromHds();
 }
 
@@ -282,13 +288,14 @@ function initInterface() {
     $('#optionDraw').on('change', function () {
         console.log("change");
         drawingMode = true
-        drawingModeCanvas()
+        $('#stageDraw').fadeIn()
     })
 
     $('#option3D').on('change', function () {
         console.log("change2D");
         drawingMode = false
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        $('#stageDraw').fadeOut()
         update()
     })
     $('#triangulateBtn').on('click', function () {
@@ -298,12 +305,12 @@ function initInterface() {
 
 }
 
-function triangulate(){
+function triangulate() {
     console.log("Triangulate!");
     var swctx = new poly2tri.SweepContext(drawExternalVertices);
+    swctx.addPoints(drawInternalVertices);
     swctx.triangulate();
-    hds = halfedgeFromDraw(swctx);
-    objectsFromHds();
+    resetObjects(swctx, true)
 }
 
 // 
@@ -420,60 +427,13 @@ function setSelectionCanvas() {
     ctx.setLineDash([15, 5]);
     ctx.strokeStyle = "rgba(214, 115, 0, 0.74)";
     ctx.lineWidth = 2.0;
-    if (drawingMode)
-        drawingModeCanvas()
+    drawingModeCanvas()
 
 }
 
-function drawingModeCanvas() {
-
-    ctx.save()
-
-    ctx.fillStyle = "white"
-    ctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
-
-    //papersheet
-    ctx.setLineDash([])
-    ctx.strokeStyle = "gray"
-    ctx.lineWidth = 1.0
-
-    var h = window.innerHeight - 60,
-        w = (2 / 3.0) * h,
-        x = (window.innerWidth - w) / 2.0,
-        y = 20;
-
-    ctx.rect(x, y, w, h)
-    ctx.fill()
-    ctx.stroke()
 
 
-    //middle fold
-    ctx.strokeStyle = "aqua"
-    ctx.beginPath()
-    ctx.moveTo(x, (h / 2.0) + y)
-    ctx.lineTo(x + w, (h / 2.0) + y)
-    ctx.stroke()
-    ctx.closePath()
 
-
-    ctx.restore()
-
-    //Add page vertices to triangulation
-    drawExternalVertices = []
-    drawExternalVertices.push(formatPoint(x,y));
-    drawExternalVertices.push(formatPoint(x+w, y));
-    drawExternalVertices.push(formatPoint(x+w, y+(h/2)));
-    drawExternalVertices.push(formatPoint(x+w, y+h));
-    drawExternalVertices.push(formatPoint(x,y+h));
-    drawExternalVertices.push(formatPoint(x, y+(h/2)));
-
-    function formatPoint(px, py){
-        var nx = px - (x + (w/2)),
-            ny = -(py - (y + (h/2)));
-        return {x: Math.floor(nx), y: Math.floor(ny), id: drawExternalVertices.length}
-    }
-
-}
 
 // Window resize callback
 function onWindowResize() {
@@ -538,26 +498,56 @@ var initX = -1,
     initY = -1;
 
 function onWindowMouseDown(event) {
+
     if (event.shiftKey) {
-        trackballControls.enabled = false
-        document.body.style.cursor = 'crosshair';
-        initX = event.clientX
-        initY = event.clientY
+
+        if (drawingMode) {
+            document.body.style.cursor = 'crosshair';
+            initX = event.clientX
+            initY = event.clientY
+        } else {
+            trackballControls.enabled = false
+            document.body.style.cursor = 'crosshair';
+            initX = event.clientX
+            initY = event.clientY
+        }
+
     }
 
 }
 
 function onWindowMouseUp(event) {
-    if (!trackballControls.enabled) {
-        boxSelectObjects(initX, initY, event.clientX, event.clientY)
-        trackballControls.enabled = true
-        initX = -1
-        initY = -1
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        document.body.style.cursor = 'pointer';
 
+    console.log("mouse up");
+
+    if (drawingMode && (initX != -1 || initY != -1)) {
+        var x = initX,
+            y = initY,
+            w = event.clientX - initX,
+            h = event.clientY - initY;
+
+        //save points
+        drawInternalVertices = []
+        drawInternalVertices.push(formatPoint(x, y));
+        drawInternalVertices.push(formatPoint(x + w, y));
+        drawInternalVertices.push(formatPoint(x + w, y + (h / 2)));
+        drawInternalVertices.push(formatPoint(x + w, y + h));
+        drawInternalVertices.push(formatPoint(x, y + h));
+        drawInternalVertices.push(formatPoint(x, y + (h / 2)));
+
+    } else {
+
+        if (!trackballControls.enabled) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            boxSelectObjects(initX, initY, event.clientX, event.clientY);
+            trackballControls.enabled = true;
+            update();
+        }
     }
-    update();
+    initX = -1
+    initY = -1
+    document.body.style.cursor = 'pointer';
+
 }
 
 function boxSelectObjects(x, y, x2, y2) {
@@ -669,12 +659,22 @@ function onWindowMouseMove(event) {
 }
 
 function addSelection(moveX, moveY) {
-    if (!trackballControls.enabled) {
-        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        ctx.beginPath();
-        ctx.rect(initX, initY, moveX - initX, moveY - initY);
-        ctx.stroke();
-        window.getSelection().removeAllRanges();
+
+
+    if (drawingMode) {
+        draw.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        draw.beginPath();
+        draw.rect(initX, initY, moveX - initX, moveY - initY);
+        draw.stroke();
+
+    } else {
+        if (!trackballControls.enabled) {
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            ctx.beginPath();
+            ctx.rect(initX, initY, moveX - initX, moveY - initY);
+            ctx.stroke();
+            window.getSelection().removeAllRanges();
+        }
     }
 }
 
@@ -1059,11 +1059,10 @@ function handleFileSelect(evt) {
             meshURL = e.target.result
             loader.load(meshURL, function (collada) {
 
-                $('.states-list').empty()
+
                 dae = collada.scene;
                 var geoMesh = dae.children[0].children[0].geometry
-                hds = halfedgeFromMesh(geoMesh)
-                objectsFromHds();
+                resetObjects(geoMesh)
                 getEdgeTypesData();
 
 
@@ -1081,3 +1080,90 @@ function handleFileSelect(evt) {
 
 
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+function drawingModeCanvas() {
+
+    var c = document.getElementById("bgCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    var bgctx = c.getContext("2d");
+
+    bgctx.fillStyle = "white"
+    bgctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
+
+    //papersheet
+    bgctx.setLineDash([])
+    bgctx.strokeStyle = "gray"
+    bgctx.lineWidth = 1.0
+
+    var h = window.innerHeight - 60,
+        w = (2 / 3.0) * h,
+        x = (window.innerWidth - w) / 2.0,
+        y = 20;
+
+    originX = x + (w / 2);
+    originY = y + (h / 2);
+
+
+    bgctx.rect(x, y, w, h)
+    bgctx.fill()
+    bgctx.stroke()
+
+
+    //middle fold
+    bgctx.strokeStyle = "aqua"
+    bgctx.beginPath()
+    bgctx.moveTo(x, (h / 2.0) + y)
+    bgctx.lineTo(x + w, (h / 2.0) + y)
+    bgctx.stroke()
+    bgctx.closePath()
+
+
+
+
+    //Add page vertices to triangulation
+    drawExternalVertices = []
+    drawExternalVertices.push(formatPoint(x, y));
+    drawExternalVertices.push(formatPoint(x + w, y));
+    drawExternalVertices.push(formatPoint(x + w, y + (h / 2)));
+    drawExternalVertices.push(formatPoint(x + w, y + h));
+    drawExternalVertices.push(formatPoint(x, y + h));
+    drawExternalVertices.push(formatPoint(x, y + (h / 2)));
+
+
+    //Draw Layer
+    var c = document.getElementById("drawCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    draw = c.getContext("2d");
+
+}
+
+
+function formatPoint(px, py) {
+    var nx = -(px - originX), //why?
+        ny = -(py - originY);
+
+    return {
+        x: nx,
+        y: ny,
+        id: drawExternalVertices.length + drawInternalVertices.length
+    }
+}
+
+function loadModel(fileName) {
+
+    meshURL = "./models/" + fileName
+    var loader = new THREE.ColladaLoader();
+    loader.options.convertUpAxis = true;
+    loader.load(meshURL, function (collada) {
+
+        dae = collada.scene;
+        geoMesh = dae.children[0].children[0].geometry
+        resetObjects(geoMesh);
+        getEdgeTypesData();
+        update();
+    });
+}

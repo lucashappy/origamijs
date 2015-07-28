@@ -311,6 +311,9 @@ function triangulate() {
     swctx.addPoints(drawInternalVertices);
     swctx.triangulate();
     resetObjects(swctx, true)
+    allFlat()
+    $("#option3D").click();
+    generateXMLFromMesh()
 }
 
 // 
@@ -336,9 +339,6 @@ function objectsFromHds() {
     addHdsEdgeLines(hds, edges);
     scene.add(edges);
 }
-
-
-
 
 
 function init() {
@@ -1166,4 +1166,47 @@ function loadModel(fileName) {
         getEdgeTypesData();
         update();
     });
+}
+
+function generateXMLFromMesh() {
+
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", "./models/default.dae", true);
+    xmlhttp.send();
+
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseXML)
+            xmlDoc = xmlhttp.responseXML;
+
+            //Vertices
+            var vtx = ""
+            hds.vecVertex.forEach(function (vertex) {
+                vtx += vertex.x + " " + vertex.y + " " + vertex.z + " "
+            })
+
+            //Faces
+            var fac = "",
+                facV = "";
+
+            hds.face.forEach(function (face) {
+                console.log('face');
+                fac += face[0] + " " + face[1] + " " + face[2] + " "
+                facV += "3 "
+            })
+
+
+            var meshTag = xmlDoc.getElementById("Kirigami-mesh");
+
+            if (meshTag) {
+                meshTag.getElementsByTagName("float_array")[0].innerHTML = vtx;
+                meshTag.getElementsByTagName("float_array")[0].setAttribute("count", hds.vecVertex.length * 3);
+                meshTag.getElementsByTagName("accessor")[0].setAttribute("count", hds.vecVertex.length);
+                meshTag.getElementsByTagName("polylist")[0].setAttribute("count", hds.face.length);
+                meshTag.getElementsByTagName("vcount")[0].innerHTML = facV;
+                meshTag.getElementsByTagName("p")[0].innerHTML = fac;
+
+            }
+        }
+    }
 }

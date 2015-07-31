@@ -1,4 +1,12 @@
-var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges = true,
+/**
+ * This is the description for my class.
+ *
+ * @class InitClass
+ * @constructor
+ */
+
+var camera, scene, renderer, controls, clock, trackballControls,
+    hideFlatEdges = true,
     drawingMode = true,
     hideSidebar = false,
     drawExternalVertices = [],
@@ -7,7 +15,6 @@ var camera, scene, renderer, controls, clock, trackballControls, hideFlatEdges =
     originX = 0,
     originY = 0;
 var mesh, hds, edges, mouse, raycaster, selected = [],
-    // meshURL = "./downloads/06.states.dae",
     meshURL = "./models/01_RoyalCrescent2b.dae",
     xmlDoc;
 var constraints = [],
@@ -21,38 +28,34 @@ var edgeTypeColor = {
     "Border": 0x777777
 };
 
+var highlighted;
+var highlightMaterialColor = 0x000000;
+var saveMaterialColor;
+
+//Mouse position init
+var initX = -1,
+    initY = -1;
+
+//Collada loader init
 var loader = new THREE.ColladaLoader();
 loader.options.convertUpAxis = true;
 loader.load(meshURL, function (collada) {
-    // loader.load('./models/06_TokyoIT', function (collada) {
-
 
     dae = collada.scene;
     geoMesh = dae.children[0].children[0].geometry
-
-    /* dae.traverse(function (child) {
-
-         if (child instanceof THREE.SkinnedMesh) {
-
-             var animation = new THREE.Animation(child, child.geometry.animation);
-             animation.play();
-
-         }
-
-     });*/
-
-    //dae.scale.x = dae.scale.y = dae.scale.z = 100;
-    //dae.updateMatrix();
-
     initInterface();
-    init();
+    init3DStage();
     update();
 });
 
+document.getElementById('files').addEventListener('change', handleFileSelect, false);
 
-//
-// Marks all selected edges as being of the given edge type
-//
+/**
+ * Marks all selected edges as being of the given edge type
+ *
+ * @method labelEdge
+ * @param {String} edgeType
+ */
 function labelEdge(edgeType) {
     for (var i = 0; i < selected.length; i++) {
         if (selected[i].halfedge.edgeType == "Border") continue;
@@ -63,10 +66,11 @@ function labelEdge(edgeType) {
 }
 
 
-
-// 
-// Deselects all edges 
-//
+/**
+ * Deselects all edges
+ *
+ * @method deselectAll
+ */
 function deselectAll() {
     for (var i = 0; i < selected.length; i++) {
         selected[i].material.gapSize = 0;
@@ -74,10 +78,27 @@ function deselectAll() {
     selected = [];
 }
 
-//
-// Processes edges to be cut, possibly altering hds. Return true
-// Returns true if hds was modified.
-//
+/**
+ * Set all edges as flat edges
+ * @method allFlat
+ * @return
+ */
+function allFlat() {
+    selected = [];
+    for (var i = 0; i < edges.children.length; i++) {
+        selected.push(edges.children[i]);
+    }
+    labelEdge("Flat");
+}
+
+
+/**
+ * Processes edges to be cut, possibly altering hds.
+ * Returns true if hds was modified.
+ *
+ * @method processCuts
+ * @return BinaryExpression
+ */
 function processCuts() {
     var vtxToSnip = [];
     var cutCount = 0;
@@ -107,10 +128,13 @@ function processCuts() {
     return cutCount + snipCount > 0;
 }
 
-//
-// Creates constraints, i.e., a set of dihedral and linear constraints
-// from halfedge data structure hds
-//
+
+/**
+ * Creates constraints, i.e., a set of dihedral and linear constraints
+ * from halfedge data structure hds
+ *
+ * @method hdsToConstraints
+ */
 function hdsToConstraints() {
 
     check_hds(hds);
@@ -145,9 +169,12 @@ function hdsToConstraints() {
     console.log("Total discrepancy", angsum);
 }
 
-//
-// Performs one step of the relaxation process
-//
+
+/**
+ * Performs one step of the relaxation process
+ *
+ * @method relaxOneStep
+ */
 function relaxOneStep() {
     var n = 10;
     var lc = constraints[0],
@@ -173,21 +200,15 @@ function relaxOneStep() {
     }
 }
 
-//
-// Set all edges as flat edges
-//
-function allFlat() {
-    selected = [];
-    for (var i = 0; i < edges.children.length; i++) {
-        selected.push(edges.children[i]);
-    }
-    labelEdge("Flat");
-}
 
-// 
-// Rebuilds all objects
-// 
-function resetObjects(newMesh, fromDraw) {
+
+/**
+ * Reset an object to its original state
+ * @method loadMesh
+ * @param {} newMesh Mesh to be loaded
+ * @param {Boolean} fromDraw true if mesh was originated from a canvas draw
+ */
+function loadMesh(newMesh, fromDraw) {
 
     $(".gui input[value='edge']").click();
     $('.states-list').empty()
@@ -198,9 +219,12 @@ function resetObjects(newMesh, fromDraw) {
     objectsFromHds();
 }
 
-//
-// Function that returns the active interaction mode
-//
+
+/**
+ * Function that returns the active interaction mode
+ * @method getActiveMode
+ * @return activeGui
+ */
 function getActiveMode() {
     var activeGui;
     var gui = d3.select("div.gui");
@@ -218,9 +242,11 @@ function getActiveMode() {
     return activeGui;
 }
 
-//
-// Initialize the Graphic User Interface
-//
+/**
+ * Initialize the Graphic User Interface
+ * @method initInterface
+ * @return
+ */
 function initInterface() {
     var gui = d3.select("body").append("div").classed("gui", true);
     gui.append("input")
@@ -247,7 +273,7 @@ function initInterface() {
         .on("click", function (d, i) {
             if (i < 4) labelEdge(d);
             else if (i == 4) allFlat();
-            else resetObjects();
+            else loadMesh();
         });
 
     gui.append("input")
@@ -287,39 +313,51 @@ function initInterface() {
     //Mode select
     $('#optionDraw').on('change', function () {
         console.log("change");
-        drawingMode = true
-        $('#stageDraw').fadeIn()
+        drawingMode = true;
+        $('#stageDraw').fadeIn();
+        update();
+
     })
 
     $('#option3D').on('change', function () {
         console.log("change2D");
         drawingMode = false
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-        $('#stageDraw').fadeOut()
-        update()
+        $('#stageDraw').fadeOut();
+        update();
+
     })
     $('#triangulateBtn').on('click', function () {
-        triangulate()
+        triangulate();
+        update();
+
     })
+
 
 
 }
 
+/**
+ * Triangulate a draw and generate the corresponding mesh
+ * @method triangulate
+ */
 function triangulate() {
     console.log("Triangulate!");
     var swctx = new poly2tri.SweepContext(drawExternalVertices);
     swctx.addPoints(drawInternalVertices);
     swctx.triangulate();
-    resetObjects(swctx, true)
+    loadMesh(swctx, true)
     allFlat()
     $("#option3D").click();
     generateXMLFromMesh()
 }
 
-// 
-// From hds, a halfedge data structure, creates a mesh and line objects 
-// for the edges. Scene is cleared and the objects are added to the scene
-// 
+
+/**
+ * From hds, a halfedge data structure, creates a mesh and line objects
+ * for the edges. Scene is cleared and the objects are added to the scene
+ * @method objectsFromHds
+ */
 function objectsFromHds() {
     if (mesh != undefined) scene.remove(mesh);
     if (edges != undefined) scene.remove(edges);
@@ -341,7 +379,11 @@ function objectsFromHds() {
 }
 
 
-function init() {
+/**
+ * Initialize the 3D stage
+ * @method init
+ */
+function init3DStage() {
 
     renderer = new THREE.WebGLRenderer({
         antialias: true
@@ -360,10 +402,6 @@ function init() {
     // Define scene
     scene = new THREE.Scene();
 
-
-    //scene.add(geoMesh);
-
-
     // Define lights
     var ambientLight = new THREE.AmbientLight(0x707070);
     scene.add(ambientLight);
@@ -378,26 +416,10 @@ function init() {
     scene.add(lights[0]);
     scene.add(lights[1]);
 
-
-    /*  var geometry = new THREE.SphereGeometry(300, 10, 10);
-      var material = new THREE.MeshLambertMaterial({
-          color: 0xffff00,
-          wireframe: false
-      });
-
-      //scene.add
-      /* sphere = new THREE.Mesh(geometry, material);
-       scene.add(sphere);
-
-       var bbox = new THREE.BoundingBoxHelper(sphere, 0xff0000);
-       bbox.update();
-       scene.add(bbox);*/
-
     /* Define the object to be viewed */
     hds = halfedgeFromMesh(geoMesh)
     objectsFromHds();
-    // resetObjects();
-    getEdgeTypesData();
+    getColladaFileFromURL();
 
 
     /* Add a raycaster for picking objects */
@@ -406,7 +428,7 @@ function init() {
     /* The clock and trackball */
     clock = new THREE.Clock();
     trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
-    // trackballControls.enabled = false
+
     // Callbacks
     window.addEventListener('resize', onWindowResize, false);
     mouse = new THREE.Vector2();
@@ -414,9 +436,12 @@ function init() {
     window.addEventListener('mousemove', onWindowMouseMove, true);
     window.addEventListener('mousedown', onWindowMouseDown, true);
     window.addEventListener('mouseup', onWindowMouseUp, true);
-
 }
 
+/**
+ * Initialize canvas to display the selection box
+ * @method setSelectionCanvas
+ */
 function setSelectionCanvas() {
     //Selection anvas
     var c = document.getElementById("myCanvas");
@@ -428,28 +453,29 @@ function setSelectionCanvas() {
     ctx.strokeStyle = "rgba(214, 115, 0, 0.74)";
     ctx.lineWidth = 2.0;
     drawingModeCanvas()
-
 }
 
-
-
-
-
-// Window resize callback
+/**
+ * Window resize callback
+ * @method onWindowResize
+ */
 function onWindowResize() {
 
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
     setSelectionCanvas();
-    update();
+
 }
 
 
+/**
+ * Shortcuts
+ */
 document.addEventListener('keydown', function (event) {
     if (event.keyCode == 96) {
         trackballControls.reset();
-        update();
+
     }
 
     if (event.keyCode == 72) {
@@ -479,6 +505,10 @@ document.addEventListener('keydown', function (event) {
 
 });
 
+/**
+ * Hide/show flat edges of the mesh
+ * @method toggleFlatEdges
+ */
 function toggleFlatEdges() {
 
     hideFlatEdges = !hideFlatEdges;
@@ -488,15 +518,13 @@ function toggleFlatEdges() {
             edge.visible = hideFlatEdges
         }
     });
-    update();
 }
 
-
-
-
-var initX = -1,
-    initY = -1;
-
+/**
+ * Handle mouse down events
+ * @method onWindowMouseDown
+ * @param {} event
+ */
 function onWindowMouseDown(event) {
 
     if (event.shiftKey) {
@@ -511,14 +539,16 @@ function onWindowMouseDown(event) {
             initX = event.clientX
             initY = event.clientY
         }
-
     }
-
 }
 
+/**
+ * Handle mouse up events
+ * @method onWindowMouseUp
+ * @param {} event
+ * @return
+ */
 function onWindowMouseUp(event) {
-
-    console.log("mouse up");
 
     if (drawingMode && (initX != -1 || initY != -1)) {
         var x = initX,
@@ -541,15 +571,22 @@ function onWindowMouseUp(event) {
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
             boxSelectObjects(initX, initY, event.clientX, event.clientY);
             trackballControls.enabled = true;
-            update();
+
         }
     }
     initX = -1
     initY = -1
     document.body.style.cursor = 'pointer';
-
 }
 
+/**
+ * Box selection of edges
+ * @method boxSelectObjects
+ * @param {Int} x Origin x of the box selection
+ * @param {Int} y Origin y of the box selection
+ * @param {Int} x2 End x of the box selection
+ * @param {Int} y2 End y of the box selection
+ */
 function boxSelectObjects(x, y, x2, y2) {
 
     var selectionBox = new THREE.Box2(new THREE.Vector2(x, y), new THREE.Vector2(x2, y2))
@@ -560,10 +597,16 @@ function boxSelectObjects(x, y, x2, y2) {
             selected.push(edge);
         }
     });
-
 }
 
 
+/**
+ * Test if the passed object is within bounds of the selection
+ * @method selectionContainsObject
+ * @param {THREE.Box2} selectBox Selection box
+ * @param {THREE.Mesh} object Object to be tested
+ * @return CallExpression
+ */
 function selectionContainsObject(selectBox, object) {
 
     object.geometry.computeBoundingBox();
@@ -585,11 +628,15 @@ function selectionContainsObject(selectBox, object) {
     var bbox = new THREE.Box2()
     bbox.setFromPoints(points)
 
-
     return selectBox.containsBox(bbox)
-
 }
 
+/**
+ * Get the screen coord from a 3D point
+ * @method screenCoordFrom3DPoint
+ * @param {THREE.Vector3} point3D
+ * @return {THREE.Vector3} vector Screen cord with z = 0
+ */
 function screenCoordFrom3DPoint(point3D) {
 
     var vector = point3D.project(camera);
@@ -600,6 +647,14 @@ function screenCoordFrom3DPoint(point3D) {
     return vector;
 }
 
+/**
+ * Get the 3D coord (with given z coord) of a 2D point in the screen
+ * @method get3dPoint
+ * @param {} x
+ * @param {} y
+ * @param {} z Desired z position
+ * @return CallExpression
+ */
 function get3dPoint(x, y, z) {
 
     x = (x / window.innerWidth) * 2 - 1;
@@ -610,30 +665,30 @@ function get3dPoint(x, y, z) {
 }
 
 
+/**
+ * Handle mouse click events
+ * @method onWindowClick
+ * @param {} event
+ */
 function onWindowClick(event) {
-
-    //boxSelectObjects(0, 0, 0, 0);
-    //event.preventDefault();
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
     // Add clicked object to selection
     selectObject();
-    update();
-
 }
 
-var highlighted;
-var highlightMaterialColor = 0x000000;
-var saveMaterialColor;
-
+/**
+ * Handle mousemove evens
+ * @method onWindowMouseMove
+ * @param {} event
+ */
 function onWindowMouseMove(event) {
 
     if (initX > -1 || initY > -1) {
-        addSelection(event.clientX, event.clientY)
+        drawSelectionBox(event.clientX, event.clientY)
     }
-
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -654,12 +709,15 @@ function onWindowMouseMove(event) {
             highlighted.material.color = highlightMaterialColor;
         }
     }
-
-    update();
 }
 
-function addSelection(moveX, moveY) {
-
+/**
+ * Draw the selection box
+ * @method addSelection
+ * @param {} moveX
+ * @param {} moveY
+ */
+function drawSelectionBox(moveX, moveY) {
 
     if (drawingMode) {
         draw.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
@@ -679,9 +737,12 @@ function addSelection(moveX, moveY) {
 }
 
 
-/* Selects/deselects objects of the scene */
+/**
+ * Selects/deselects objects of the scene
+ * @method selectObject
+ * @return
+ */
 function selectObject() {
-
 
     // find intersections
     raycaster.setFromCamera(mouse, camera);
@@ -701,6 +762,11 @@ function selectObject() {
 }
 
 
+/**
+ * Update 3D scene
+ * @method update
+ * @return
+ */
 function update() {
 
     if (!drawingMode) {
@@ -712,15 +778,25 @@ function update() {
         }
 
         renderer.render(scene, camera);
+        requestAnimationFrame(update);
     }
 
 }
 
-
-//
-// Returns a THREE.Geometry object from a halfedge data structure 
-//
+/**
+ * Returns a THREE.Geometry object from a halfedge data structure
+ * @method halfedgeGeometry
+ * @param {} hds halfedge object
+ * @return {THREE.Geometry} g corresponding geometry
+ */
 function halfedgeGeometry(hds) {
+    /**
+     * Description
+     * @method iv
+     * @param {} i
+     * @param {} j
+     * @return BinaryExpression
+     */
     function iv(i, j) {
         return i * m + j
     };
@@ -738,9 +814,15 @@ function halfedgeGeometry(hds) {
     return g;
 }
 
-
-// Adds an array of cylinders with radius r, one for each edge of
-// halfedge data structure hds, to the given scene
+/**
+ * Adds an array of cylinders with radius r, one for each edge of
+ * halfedge data structure hds, to the given scene
+ * @method addHdsEdgeCylinders
+ * @param {} hds
+ * @param {} scene
+ * @param {} r
+ * @return
+ */
 function addHdsEdgeCylinders(hds, scene, r) {
     hds.allEdges(function (he, phe) {
         var v0 = toVec3(hds.vertex[he.vtx]);
@@ -757,43 +839,62 @@ function addHdsEdgeCylinders(hds, scene, r) {
     });
 }
 
-// Adds an array of lines, one for each edge of
-// halfedge data structure hds, to the given scene
+/**
+ * Adds an array of lines, one for each edge of
+ * halfedge data structure hds, to the given scene
+ * @method addHdsEdgeLines
+ * @param {} hds
+ * @param {} scene
+ * @return
+ */
 function addHdsEdgeLines(hds, scene) {
-        hds.allEdges(function (he, phe) {
-            // var v0 = toVec3(hds.vertex[he.vtx]);
-            // var v1 = toVec3(hds.vertex[phe.vtx]);
-            var v0 = hds.vecVertex[he.vtx];
-            var v1 = hds.vecVertex[phe.vtx];
-            var g = new THREE.Geometry();
-            g.vertices.push(v0, v1);
-            g.computeLineDistances();
-            var m = new THREE.LineDashedMaterial({
-                color: 0x0000ff,
-                scale: 0.5,
-                linewidth: 2,
-                dashSize: 2,
-                gapSize: 0
-            });
-            if (he.fac < 0 || hds.halfedge[he.opp].fac < 0) {
-                he.edgeType = "Border";
-            }
-            if (he.edgeType != undefined)
-                m.color.setHex(edgeTypeColor[he.edgeType]);
-
-            var line = new THREE.Line(g, m);
-            line.halfedge = he;
-            scene.add(line);
+    hds.allEdges(function (he, phe) {
+        // var v0 = toVec3(hds.vertex[he.vtx]);
+        // var v1 = toVec3(hds.vertex[phe.vtx]);
+        var v0 = hds.vecVertex[he.vtx];
+        var v1 = hds.vecVertex[phe.vtx];
+        var g = new THREE.Geometry();
+        g.vertices.push(v0, v1);
+        g.computeLineDistances();
+        var m = new THREE.LineDashedMaterial({
+            color: 0x0000ff,
+            scale: 0.5,
+            linewidth: 2,
+            dashSize: 2,
+            gapSize: 0
         });
-    }
-    // converts a PVector to a THREE.Vector3 
+        if (he.fac < 0 || hds.halfedge[he.opp].fac < 0) {
+            he.edgeType = "Border";
+        }
+        if (he.edgeType != undefined)
+            m.color.setHex(edgeTypeColor[he.edgeType]);
+
+        var line = new THREE.Line(g, m);
+        line.halfedge = he;
+        scene.add(line);
+    });
+}
+
+/**
+ * Converts a PVector to a THREE.Vector3
+ * @method toVec3
+ * @param {} pvector
+ * @return NewExpression
+ */
 function toVec3(pvector) {
     return new THREE.Vector3(pvector.x, pvector.y, pvector.z);
 }
 
-// Returns a cylinder geometry where the bottom is at vstart,
-// the top is at vend (both are THREE.Vector3 objects, 
-// and the radius is r
+/**
+ * Returns a cylinder geometry where the bottom is at vstart,
+ * the top is at vend (both are THREE.Vector3 objects,
+ * and the radius is r
+ * @method cylinder
+ * @param {} vstart
+ * @param {} vend
+ * @param {} r
+ * @return cylinder
+ */
 function cylinder(vstart, vend, r) {
     var distance = vstart.distanceTo(vend);
     var position = vend.clone().add(vstart).divideScalar(2);
@@ -810,11 +911,13 @@ function cylinder(vstart, vend, r) {
     return cylinder;
 }
 
-
-//
-// Adds table vecVertex to the given halfedge data structure
-// that contains all vertices as THREE.Vector3 objects rather than PVector objects
-//
+/**
+ * Adds table vecVertex to the given halfedge data structure
+ * that contains all vertices as THREE.Vector3 objects rather than PVector objects
+ * @method hdsCreateVertexVectors
+ * @param {} hds
+ * @return
+ */
 function hdsCreateVertexVectors(hds) {
     hds.vecVertex = [];
     hds.allVertices(function (he, v) {
@@ -822,18 +925,29 @@ function hdsCreateVertexVectors(hds) {
     });
 }
 
-//
-// Updates table vecVertex from the parallel vertex table objects
-//
+/**
+ * Updates table vecVertex from the parallel vertex table objects
+ * @method hdsUpdateVertexVectors
+ * @param {} hds
+ * @return
+ */
 function hdsUpdateVertexVectors(hds) {
     hds.allVertices(function (he, v) {
         hds.vecVertex[he.vtx].set(v.x, v.y, v.z);
     });
 }
 
-// Returns a halfedge data structure for a gridded paper with
-// n times m cells, each of size s
+/**
+ * Returns a halfedge data structure for a gridded paper with
+ * n times m cells, each of size s
+ * @method paperHalfedge
+ * @param {} n
+ * @param {} m
+ * @param {} s
+ * @return hds
+ */
 function paperHalfedge(n, m, s) {
+
     function iv(i, j) {
         return i * m + j
     };
@@ -855,6 +969,12 @@ function paperHalfedge(n, m, s) {
     return hds;
 }
 
+/**
+ * Generate a halfedge from a mesh structure
+ * @method halfedgeFromMesh
+ * @param {} mesh
+ * @return hds
+ */
 function halfedgeFromMesh(mesh) {
 
     var fac = [],
@@ -873,6 +993,12 @@ function halfedgeFromMesh(mesh) {
     return hds;
 }
 
+/**
+ * Generate a halfedge from a triangulated draw
+ * @method halfedgeFromDraw
+ * @param {} swctx
+ * @return hds
+ */
 function halfedgeFromDraw(swctx) {
 
     var fac = [],
@@ -908,13 +1034,21 @@ var saveData = (function () {
     };
 }());
 
+/**
+ * Download a mesh
+ * @method downloadMesh
+ */
 function downloadMesh() {
-
     saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
 }
 
 
-function getEdgeTypesData() {
+/**
+ * Read the collada file of a mesh from an url
+ * @method getColladaFileFromURL
+ * @return
+ */
+function getColladaFileFromURL() {
 
     xmlhttp = new XMLHttpRequest();
     xmlhttp.open("GET", meshURL, true);
@@ -925,11 +1059,14 @@ function getEdgeTypesData() {
             console.log(xmlhttp.responseXML)
             xmlDoc = xmlhttp.responseXML;
             loadEdgeTypes();
-            update()
         }
     }
 }
 
+/**
+ * Read edge type information from the collada file of the mesh
+ * @method loadEdgeTypes
+ */
 function loadEdgeTypes() {
 
     var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type")
@@ -939,10 +1076,14 @@ function loadEdgeTypes() {
     }
 
     $('.state-item').last().trigger("click");
-
     parseEdgeTypeByIndex(edgeTypeTags.length - 1)
 }
 
+/**
+ * Parse all edge type collections from the xml file
+ * @method parseEdgeTypeByIndex
+ * @param {} index
+ */
 function parseEdgeTypeByIndex(index) {
     console.log("index " + index);
     allFlat();
@@ -953,6 +1094,13 @@ function parseEdgeTypeByIndex(index) {
 }
 
 
+/**
+ * Parse a edge type collection from the xml file
+ * @method parseEdgeType
+ * @param {} edgeTypeNode
+ * @param {} tag
+ * @param {} label
+ */
 function parseEdgeType(edgeTypeNode, tag, label) {
     var ridges = edgeTypeNode.getElementsByTagName(tag)[0].innerHTML.split(" ");
     for (var i = 0; i < ridges.length; i++) {
@@ -964,12 +1112,16 @@ function parseEdgeType(edgeTypeNode, tag, label) {
     }
 }
 
+/**
+ * Add new state (a scheme of cuts,ridges and valleys on the mesh)
+ * @method addNewState
+ * @return
+ */
 function addNewState() {
 
     var cuts = [],
         ridges = [],
         valleys = [];
-
 
     edges.children.forEach(function (elem, index) {
         switch (elem.halfedge.edgeType) {
@@ -999,6 +1151,7 @@ function addNewState() {
         .getElementsByTagName("extra")[0]
         .appendChild(edgeTypeNode)
 
+    //Save the edge type collection to the XML representation of the mesh
     function addEdgeTypesToXML(tag, data) {
         if (edgeTypeNode.getElementsByTagName(tag)[0]) {
             edgeTypeNode.getElementsByTagName(tag)[0].innerHTML = data
@@ -1018,6 +1171,12 @@ function addNewState() {
 
 }
 
+/**
+ * Add a state to the list of states in the gui
+ * @method addState
+ * @param {} stateIndex
+ * @return
+ */
 function addState(stateIndex) {
     $('.states-list')
         .append('<li class="list-group-item state-item" onclick="parseEdgeTypeByIndex(' + stateIndex + ')">State ' + stateIndex +
@@ -1029,6 +1188,12 @@ function addState(stateIndex) {
 
 }
 
+/**
+ * Remove a state from the XML
+ * @method removeState
+ * @param {} event
+ * @return
+ */
 function removeState(event) {
     var index = $(event.target.parentElement).index()
     var node = xmlDoc.getElementsByTagName("edge_type")[index]
@@ -1038,17 +1203,15 @@ function removeState(event) {
 
 }
 
+/**
+ * Handle local file selection (of a mesh object)
+ * @method handleFileSelect
+ * @param {} evt
+ * @return
+ */
 function handleFileSelect(evt) {
 
     var file = evt.target.files[0]; // FileList object
-
-    // Loop through the FileList and render image files as thumbnails.
-    /* for (var i = 0, f; f = files[i]; i++) {
-
-         // Only process image files.
-         /*if (!f.type.match('application/xml')) {
-                 continue;
-               }*/
 
     var reader = new FileReader();
 
@@ -1058,29 +1221,25 @@ function handleFileSelect(evt) {
 
             meshURL = e.target.result
             loader.load(meshURL, function (collada) {
-
-
                 dae = collada.scene;
                 var geoMesh = dae.children[0].children[0].geometry
-                resetObjects(geoMesh)
-                getEdgeTypesData();
-
-
+                loadMesh(geoMesh)
+                getColladaFileFromURL();
 
             });
-
-
         };
     })(file);
 
     // Read in the image file as a data URL.
     reader.readAsDataURL(file);
-
 };
 
 
-document.getElementById('files').addEventListener('change', handleFileSelect, false);
-
+/**
+ * Drawing canvas background
+ * @method drawingModeCanvas
+ * @return
+ */
 function drawingModeCanvas() {
 
     var c = document.getElementById("bgCanvas");
@@ -1120,8 +1279,6 @@ function drawingModeCanvas() {
     bgctx.closePath()
 
 
-
-
     //Add page vertices to triangulation
     drawExternalVertices = []
     drawExternalVertices.push(formatPoint(x, y));
@@ -1142,6 +1299,13 @@ function drawingModeCanvas() {
 }
 
 
+/**
+ * Normalize a canvas point to the triangulation
+ * @method formatPoint
+ * @param {} px
+ * @param {} py
+ * @return ObjectExpression
+ */
 function formatPoint(px, py) {
     var nx = -(px - originX), //why?
         ny = -(py - originY);
@@ -1153,6 +1317,12 @@ function formatPoint(px, py) {
     }
 }
 
+/**
+ * Load model from server
+ * @method loadModel
+ * @param {} fileName filename of the file in the models folder
+ * @return
+ */
 function loadModel(fileName) {
 
     meshURL = "./models/" + fileName
@@ -1162,18 +1332,28 @@ function loadModel(fileName) {
 
         dae = collada.scene;
         geoMesh = dae.children[0].children[0].geometry
-        resetObjects(geoMesh);
-        getEdgeTypesData();
-        update();
+        loadMesh(geoMesh);
+        getColladaFileFromURL();
+
     });
 }
 
+/**
+ * Generate a XML representation of the mesh in the collada format
+ * @method generateXMLFromMesh
+ * @return
+ */
 function generateXMLFromMesh() {
 
     xmlhttp = new XMLHttpRequest();
     xmlhttp.open("GET", "./models/default.dae", true);
     xmlhttp.send();
 
+    /**
+     * Description
+     * @method onreadystatechange
+     * @return
+     */
     xmlhttp.onreadystatechange = function () {
         if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
             console.log(xmlhttp.responseXML)

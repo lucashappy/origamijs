@@ -1,8 +1,10 @@
 /**
-* @author Tim Knip / http://www.floorplanner.com/ / tim at floorplanner.com
-* @author Tony Parisi / http://www.tonyparisi.com/
-*/
-
+ * Description
+ * @author Tim Knip / http://www.floorplanner.com/ / tim at floorplanner.com
+ * @author Tony Parisi / http://www.tonyparisi.com/
+ * @method ColladaLoader
+ * @return ObjectExpression
+ */
 THREE.ColladaLoader = function () {
 
 	var COLLADA = null;
@@ -56,6 +58,15 @@ THREE.ColladaLoader = function () {
 	var colladaUp = 'Y';
 	var upConversion = null;
 
+	/**
+	 * Description
+	 * @method load
+	 * @param {} url
+	 * @param {} readyCallback
+	 * @param {} progressCallback
+	 * @param {} failCallback
+	 * @return
+	 */
 	function load ( url, readyCallback, progressCallback, failCallback ) {
 
 		var length = 0;
@@ -64,6 +75,11 @@ THREE.ColladaLoader = function () {
 
 			var request = new XMLHttpRequest();
 
+			/**
+			 * Description
+			 * @method onreadystatechange
+			 * @return
+			 */
 			request.onreadystatechange = function() {
 
 				if ( request.readyState === 4 ) {
@@ -128,6 +144,14 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} doc
+	 * @param {} callBack
+	 * @param {} url
+	 * @return result
+	 */
 	function parse( doc, callBack, url ) {
 
 		COLLADA = doc;
@@ -209,12 +233,23 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method setPreferredShading
+	 * @param {} shading
+	 * @return
+	 */
 	function setPreferredShading ( shading ) {
 
 		preferredShading = shading;
 
 	}
 
+	/**
+	 * Description
+	 * @method parseAsset
+	 * @return
+	 */
 	function parseAsset () {
 
 		var elements = COLLADA.querySelectorAll('asset');
@@ -254,6 +289,14 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parseLib
+	 * @param {} q
+	 * @param {} classSpec
+	 * @param {} prefix
+	 * @return lib
+	 */
 	function parseLib ( q, classSpec, prefix ) {
 
 		var elements = COLLADA.querySelectorAll(q);
@@ -278,6 +321,11 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parseScene
+	 * @return
+	 */
 	function parseScene() {
 
 		var sceneElement = COLLADA.querySelectorAll('scene instance_visual_scene')[0];
@@ -295,6 +343,11 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parseKinematicsModel
+	 * @return
+	 */
 	function parseKinematicsModel() {
 
 		var kinematicsModelElement = COLLADA.querySelectorAll('instance_kinematics_model')[0];
@@ -312,6 +365,11 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method createAnimations
+	 * @return
+	 */
 	function createAnimations() {
 
 		animData = [];
@@ -321,6 +379,12 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method recurseHierarchy
+	 * @param {} node
+	 * @return newData
+	 */
 	function recurseHierarchy( node ) {
 
 		var n = visualScene.getChildById( node.colladaId, true ),
@@ -378,6 +442,11 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method calcAnimationBounds
+	 * @return ObjectExpression
+	 */
 	function calcAnimationBounds () {
 
 		var start = 1000000;
@@ -406,6 +475,13 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method createMorph
+	 * @param {} geometry
+	 * @param {} ctrl
+	 * @return
+	 */
 	function createMorph ( geometry, ctrl ) {
 
 		var morphCtrl = ctrl instanceof InstanceController ? controllers[ ctrl.url ] : ctrl;
@@ -444,6 +520,14 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method createSkin
+	 * @param {} geometry
+	 * @param {} ctrl
+	 * @param {} applyBindShape
+	 * @return
+	 */
 	function createSkin ( geometry, ctrl, applyBindShape ) {
 
 		var skinCtrl = controllers[ ctrl.url ];
@@ -497,6 +581,15 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method setupSkeleton
+	 * @param {} node
+	 * @param {} bones
+	 * @param {} frame
+	 * @param {} parent
+	 * @return
+	 */
 	function setupSkeleton ( node, bones, frame, parent ) {
 
 		node.world = node.world || new THREE.Matrix4();
@@ -535,6 +628,13 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method setupSkinningMatrices
+	 * @param {} bones
+	 * @param {} skin
+	 * @return
+	 */
 	function setupSkinningMatrices ( bones, skin ) {
 
 		// FIXME: this is dumb...
@@ -598,9 +698,23 @@ THREE.ColladaLoader = function () {
 	}
 
 	//Walk the Collada tree and flatten the bones into a list, extract the position, quat and scale from the matrix
+	/**
+	 * Description
+	 * @method flattenSkeleton
+	 * @param {} skeleton
+	 * @return list
+	 */
 	function flattenSkeleton(skeleton) {
 
 		var list = [];
+		/**
+		 * Description
+		 * @method walk
+		 * @param {} parentid
+		 * @param {} node
+		 * @param {} list
+		 * @return
+		 */
 		var walk = function(parentid, node, list) {
 
 			var bone = {};
@@ -630,6 +744,14 @@ THREE.ColladaLoader = function () {
 	}
 
 	//Move the vertices into the pose that is proper for the start of the animation
+	/**
+	 * Description
+	 * @method skinToBindPose
+	 * @param {} geometry
+	 * @param {} skeleton
+	 * @param {} skinController
+	 * @return
+	 */
 	function skinToBindPose(geometry,skeleton,skinController) {
 
 		var bones = [];
@@ -678,6 +800,14 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method applySkin
+	 * @param {} geometry
+	 * @param {} instanceCtrl
+	 * @param {} frame
+	 * @return
+	 */
 	function applySkin ( geometry, instanceCtrl, frame ) {
 
 		var skinController = controllers[ instanceCtrl.url ];
@@ -828,6 +958,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method createKinematics
+	 * @return
+	 */
 	function createKinematics() {
 
 		if ( kinematicsModel && kinematicsModel.joints.length === 0 ) {
@@ -864,6 +999,12 @@ THREE.ColladaLoader = function () {
 
 			joints: kinematicsModel && kinematicsModel.joints,
 
+			/**
+			 * Description
+			 * @method getJointValue
+			 * @param {} jointIndex
+			 * @return
+			 */
 			getJointValue: function( jointIndex ) {
 
 				var jointData = jointMap[ jointIndex ];
@@ -880,6 +1021,13 @@ THREE.ColladaLoader = function () {
 
 			},
 
+			/**
+			 * Description
+			 * @method setJointValue
+			 * @param {} jointIndex
+			 * @param {} value
+			 * @return
+			 */
 			setJointValue: function( jointIndex, value ) {
 
 				var jointData = jointMap[ jointIndex ];
@@ -1033,6 +1181,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method createSceneGraph
+	 * @param {} node
+	 * @param {} parent
+	 * @return obj
+	 */
 	function createSceneGraph ( node, parent ) {
 
 		var obj = new THREE.Object3D();
@@ -1334,6 +1489,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getJointId
+	 * @param {} skin
+	 * @param {} id
+	 * @return
+	 */
 	function getJointId( skin, id ) {
 
 		for ( var i = 0; i < skin.joints.length; i ++ ) {
@@ -1348,6 +1510,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getLibraryNode
+	 * @param {} id
+	 * @return undefined
+	 */
 	function getLibraryNode( id ) {
 
 		var nodes = COLLADA.querySelectorAll('library_nodes node');
@@ -1368,6 +1536,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getChannelsForNode
+	 * @param {} node
+	 * @return channels
+	 */
 	function getChannelsForNode ( node ) {
 
 		var channels = [];
@@ -1409,6 +1583,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method calcFrameDuration
+	 * @param {} node
+	 * @return minT
+	 */
 	function calcFrameDuration( node ) {
 
 		var minT = 10000000;
@@ -1430,6 +1610,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method calcMatrixAt
+	 * @param {} node
+	 * @param {} t
+	 * @return matrix
+	 */
 	function calcMatrixAt( node, t ) {
 
 		var animated = {};
@@ -1499,6 +1686,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method bakeAnimations
+	 * @param {} node
+	 * @return
+	 */
 	function bakeAnimations ( node ) {
 
 		if ( node.channels && node.channels.length ) {
@@ -1591,6 +1784,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method findKey
+	 * @param {} keys
+	 * @param {} time
+	 * @return retVal
+	 */
 	function findKey ( keys, time) {
 
 		var retVal = null;
@@ -1615,6 +1815,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method findTimeNdx
+	 * @param {} keys
+	 * @param {} time
+	 * @return ndx
+	 */
 	function findTimeNdx ( keys, time) {
 
 		var ndx = -1;
@@ -1635,6 +1842,15 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method interpolateKeys
+	 * @param {} keys
+	 * @param {} key
+	 * @param {} ndx
+	 * @param {} fullSid
+	 * @return
+	 */
 	function interpolateKeys ( keys, key, ndx, fullSid ) {
 
 		var prevKey = getPrevKeyWith( keys, fullSid, ndx ? ndx - 1 : 0 ),
@@ -1676,6 +1892,14 @@ THREE.ColladaLoader = function () {
 
 	// Get next key with given sid
 
+	/**
+	 * Description
+	 * @method getNextKeyWith
+	 * @param {} keys
+	 * @param {} fullSid
+	 * @param {} ndx
+	 * @return Literal
+	 */
 	function getNextKeyWith( keys, fullSid, ndx ) {
 
 		for ( ; ndx < keys.length; ndx ++ ) {
@@ -1696,6 +1920,14 @@ THREE.ColladaLoader = function () {
 
 	// Get previous key with given sid
 
+	/**
+	 * Description
+	 * @method getPrevKeyWith
+	 * @param {} keys
+	 * @param {} fullSid
+	 * @param {} ndx
+	 * @return Literal
+	 */
 	function getPrevKeyWith( keys, fullSid, ndx ) {
 
 		ndx = ndx >= 0 ? ndx : ndx + keys.length;
@@ -1723,6 +1955,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	_Image.prototype.parse = function(element) {
 
 		this.id = element.getAttribute('id');
@@ -1743,6 +1981,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Controller
+	 * @return
+	 */
 	function Controller() {
 
 		this.id = "";
@@ -1753,6 +1996,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Controller.prototype.parse = function( element ) {
 
 		this.id = element.getAttribute('id');
@@ -1787,6 +2036,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Morph
+	 * @return
+	 */
 	function Morph() {
 
 		this.method = null;
@@ -1796,6 +2050,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Morph.prototype.parse = function( element ) {
 
 		var sources = {};
@@ -1859,6 +2119,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseInputs
+	 * @param {} element
+	 * @return inputs
+	 */
 	Morph.prototype.parseInputs = function(element) {
 
 		var inputs = [];
@@ -1884,6 +2150,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Skin
+	 * @return
+	 */
 	function Skin() {
 
 		this.source = "";
@@ -1894,6 +2165,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Skin.prototype.parse = function( element ) {
 
 		var sources = {};
@@ -1948,6 +2225,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseJoints
+	 * @param {} element
+	 * @param {} sources
+	 * @return
+	 */
 	Skin.prototype.parseJoints = function ( element, sources ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -1982,6 +2266,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseWeights
+	 * @param {} element
+	 * @param {} sources
+	 * @return
+	 */
 	Skin.prototype.parseWeights = function ( element, sources ) {
 
 		var v, vcount, inputs = [];
@@ -2066,6 +2357,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method VisualScene
+	 * @return
+	 */
 	function VisualScene () {
 
 		this.id = "";
@@ -2075,6 +2371,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getChildById
+	 * @param {} id
+	 * @param {} recursive
+	 * @return Literal
+	 */
 	VisualScene.prototype.getChildById = function( id, recursive ) {
 
 		for ( var i = 0; i < this.nodes.length; i ++ ) {
@@ -2093,6 +2396,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getChildBySid
+	 * @param {} sid
+	 * @param {} recursive
+	 * @return Literal
+	 */
 	VisualScene.prototype.getChildBySid = function( sid, recursive ) {
 
 		for ( var i = 0; i < this.nodes.length; i ++ ) {
@@ -2111,6 +2421,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	VisualScene.prototype.parse = function( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -2140,6 +2456,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Node
+	 * @return
+	 */
 	function Node() {
 
 		this.id = "";
@@ -2154,6 +2475,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getChannelForTransform
+	 * @param {} transformSid
+	 * @return Literal
+	 */
 	Node.prototype.getChannelForTransform = function( transformSid ) {
 
 		for ( var i = 0; i < this.channels.length; i ++ ) {
@@ -2199,6 +2526,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getChildById
+	 * @param {} id
+	 * @param {} recursive
+	 * @return Literal
+	 */
 	Node.prototype.getChildById = function ( id, recursive ) {
 
 		if ( this.id === id ) {
@@ -2227,6 +2561,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getChildBySid
+	 * @param {} sid
+	 * @param {} recursive
+	 * @return Literal
+	 */
 	Node.prototype.getChildBySid = function ( sid, recursive ) {
 
 		if ( this.sid === sid ) {
@@ -2254,6 +2595,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getTransformBySid
+	 * @param {} sid
+	 * @return Literal
+	 */
 	Node.prototype.getTransformBySid = function ( sid ) {
 
 		for ( var i = 0; i < this.transforms.length; i ++ ) {
@@ -2266,6 +2613,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Node.prototype.parse = function( element ) {
 
 		var url;
@@ -2362,6 +2715,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method updateMatrix
+	 * @return
+	 */
 	Node.prototype.updateMatrix = function () {
 
 		this.matrix.identity();
@@ -2374,6 +2732,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Transform
+	 * @return
+	 */
 	function Transform () {
 
 		this.sid = "";
@@ -2383,6 +2746,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Transform.prototype.parse = function ( element ) {
 
 		this.sid = element.getAttribute( 'sid' );
@@ -2394,6 +2763,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method convert
+	 * @return
+	 */
 	Transform.prototype.convert = function () {
 
 		switch ( this.type ) {
@@ -2465,6 +2839,13 @@ THREE.ColladaLoader = function () {
 
 	}();
 
+	/**
+	 * Description
+	 * @method update
+	 * @param {} data
+	 * @param {} member
+	 * @return
+	 */
 	Transform.prototype.update = function ( data, member ) {
 
 		var members = [ 'X', 'Y', 'Z', 'ANGLE' ];
@@ -2614,6 +2995,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method InstanceController
+	 * @return
+	 */
 	function InstanceController() {
 
 		this.url = "";
@@ -2622,6 +3008,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	InstanceController.prototype.parse = function ( element ) {
 
 		this.url = element.getAttribute('url').replace(/^#/, '');
@@ -2667,6 +3059,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method InstanceMaterial
+	 * @return
+	 */
 	function InstanceMaterial () {
 
 		this.symbol = "";
@@ -2674,6 +3071,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	InstanceMaterial.prototype.parse = function ( element ) {
 
 		this.symbol = element.getAttribute('symbol');
@@ -2682,6 +3085,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method InstanceGeometry
+	 * @return
+	 */
 	function InstanceGeometry() {
 
 		this.url = "";
@@ -2689,6 +3097,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	InstanceGeometry.prototype.parse = function ( element ) {
 
 		this.url = element.getAttribute('url').replace(/^#/, '');
@@ -2720,6 +3134,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Geometry
+	 * @return
+	 */
 	function Geometry() {
 
 		this.id = "";
@@ -2727,6 +3146,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Geometry.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute('id');
@@ -2758,6 +3183,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Mesh
+	 * @param {} geometry
+	 * @return
+	 */
 	function Mesh( geometry ) {
 
 		this.geometry = geometry.id;
@@ -2767,6 +3198,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Mesh.prototype.parse = function ( element ) {
 
 		this.primitives = [];
@@ -2851,6 +3288,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method handlePrimitive
+	 * @param {} primitive
+	 * @param {} geom
+	 * @return
+	 */
 	Mesh.prototype.handlePrimitive = function ( primitive, geom ) {
 
 		if ( primitive instanceof LineStrips ) {
@@ -3115,6 +3559,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Polygons
+	 * @return
+	 */
 	function Polygons () {
 
 		this.material = "";
@@ -3126,6 +3575,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method setVertices
+	 * @param {} vertices
+	 * @return
+	 */
 	Polygons.prototype.setVertices = function ( vertices ) {
 
 		for ( var i = 0; i < this.inputs.length; i ++ ) {
@@ -3140,6 +3595,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Polygons.prototype.parse = function ( element ) {
 
 		this.material = element.getAttribute( 'material' );
@@ -3182,6 +3643,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Polylist
+	 * @return
+	 */
 	function Polylist () {
 
 		Polygons.call( this );
@@ -3193,6 +3659,11 @@ THREE.ColladaLoader = function () {
 	Polylist.prototype = Object.create( Polygons.prototype );
 	Polylist.prototype.constructor = Polylist;
 
+	/**
+	 * Description
+	 * @method LineStrips
+	 * @return
+	 */
 	function LineStrips() {
 
 		Polygons.call( this );
@@ -3204,6 +3675,11 @@ THREE.ColladaLoader = function () {
 	LineStrips.prototype = Object.create( Polygons.prototype );
 	LineStrips.prototype.constructor = LineStrips;
 
+	/**
+	 * Description
+	 * @method Triangles
+	 * @return
+	 */
 	function Triangles () {
 
 		Polygons.call( this );
@@ -3215,6 +3691,11 @@ THREE.ColladaLoader = function () {
 	Triangles.prototype = Object.create( Polygons.prototype );
 	Triangles.prototype.constructor = Triangles;
 
+	/**
+	 * Description
+	 * @method Accessor
+	 * @return
+	 */
 	function Accessor() {
 
 		this.source = "";
@@ -3224,6 +3705,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Accessor.prototype.parse = function ( element ) {
 
 		this.params = [];
@@ -3250,12 +3737,23 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Vertices
+	 * @return
+	 */
 	function Vertices() {
 
 		this.input = {};
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Vertices.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute('id');
@@ -3275,6 +3773,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Input
+	 * @return
+	 */
 	function Input () {
 
 		this.semantic = "";
@@ -3284,6 +3787,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Input.prototype.parse = function ( element ) {
 
 		this.semantic = element.getAttribute('semantic');
@@ -3301,6 +3810,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Source
+	 * @param {} id
+	 * @return
+	 */
 	function Source ( id ) {
 
 		this.id = id;
@@ -3308,6 +3823,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Source.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -3368,6 +3889,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method read
+	 * @return result
+	 */
 	Source.prototype.read = function () {
 
 		var result = [];
@@ -3410,6 +3936,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Material
+	 * @return
+	 */
 	function Material () {
 
 		this.id = "";
@@ -3418,6 +3949,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Material.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -3438,6 +3975,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method ColorOrTexture
+	 * @return
+	 */
 	function ColorOrTexture () {
 
 		this.color = new THREE.Color();
@@ -3450,18 +3992,34 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method isColor
+	 * @return BinaryExpression
+	 */
 	ColorOrTexture.prototype.isColor = function () {
 
 		return ( this.texture === null );
 
 	};
 
+	/**
+	 * Description
+	 * @method isTexture
+	 * @return BinaryExpression
+	 */
 	ColorOrTexture.prototype.isTexture = function () {
 
 		return ( this.texture != null );
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	ColorOrTexture.prototype.parse = function ( element ) {
 
 		if (element.nodeName === 'transparent') {
@@ -3513,6 +4071,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseTexture
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	ColorOrTexture.prototype.parseTexture = function ( element ) {
 
 		if ( ! element.childNodes ) return this;
@@ -3576,6 +4140,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Shader
+	 * @param {} type
+	 * @param {} effect
+	 * @return
+	 */
 	function Shader ( type, effect ) {
 
 		this.type = type;
@@ -3584,6 +4155,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Shader.prototype.parse = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -3647,6 +4224,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method create
+	 * @return MemberExpression
+	 */
 	Shader.prototype.create = function() {
 
 		var props = {};
@@ -3818,6 +4400,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Surface
+	 * @param {} effect
+	 * @return
+	 */
 	function Surface ( effect ) {
 
 		this.effect = effect;
@@ -3826,6 +4414,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Surface.prototype.parse = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -3858,6 +4452,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Sampler2D
+	 * @param {} effect
+	 * @return
+	 */
 	function Sampler2D ( effect ) {
 
 		this.effect = effect;
@@ -3870,6 +4470,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Sampler2D.prototype.parse = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -3922,6 +4528,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Effect
+	 * @return
+	 */
 	function Effect () {
 
 		this.id = "";
@@ -3932,6 +4543,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method create
+	 * @return
+	 */
 	Effect.prototype.create = function () {
 
 		if ( this.shader === null ) {
@@ -3942,6 +4558,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Effect.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -3974,6 +4596,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseNewparam
+	 * @param {} element
+	 * @return
+	 */
 	Effect.prototype.parseNewparam = function ( element ) {
 
 		var sid = element.getAttribute( 'sid' );
@@ -4010,6 +4638,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseProfileCOMMON
+	 * @param {} element
+	 * @return technique
+	 */
 	Effect.prototype.parseProfileCOMMON = function ( element ) {
 
 		var technique;
@@ -4059,6 +4693,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseTechnique
+	 * @param {} element
+	 * @return
+	 */
 	Effect.prototype.parseTechnique = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -4087,6 +4727,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseExtra
+	 * @param {} element
+	 * @return
+	 */
 	Effect.prototype.parseExtra = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -4108,6 +4754,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseExtraTechnique
+	 * @param {} element
+	 * @return
+	 */
 	Effect.prototype.parseExtraTechnique = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -4129,12 +4781,23 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method InstanceEffect
+	 * @return
+	 */
 	function InstanceEffect () {
 
 		this.url = "";
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	InstanceEffect.prototype.parse = function ( element ) {
 
 		this.url = element.getAttribute( 'url' ).replace( /^#/, '' );
@@ -4142,6 +4805,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Animation
+	 * @return
+	 */
 	function Animation() {
 
 		this.id = "";
@@ -4152,6 +4820,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Animation.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -4212,6 +4886,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Channel
+	 * @param {} animation
+	 * @return
+	 */
 	function Channel( animation ) {
 
 		this.animation = animation;
@@ -4226,6 +4906,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Channel.prototype.parse = function ( element ) {
 
 		this.source = element.getAttribute( 'source' ).replace( /^#/, '' );
@@ -4272,6 +4958,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Sampler
+	 * @param {} animation
+	 * @return
+	 */
 	function Sampler ( animation ) {
 
 		this.id = "";
@@ -4287,6 +4979,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Sampler.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -4315,6 +5013,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method create
+	 * @return
+	 */
 	Sampler.prototype.create = function () {
 
 		for ( var i = 0; i < this.inputs.length; i ++ ) {
@@ -4379,6 +5082,14 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getData
+	 * @param {} type
+	 * @param {} ndx
+	 * @param {} member
+	 * @return data
+	 */
 	Sampler.prototype.getData = function ( type, ndx, member ) {
 
 		var data;
@@ -4435,6 +5146,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Key
+	 * @param {} time
+	 * @return
+	 */
 	function Key ( time ) {
 
 		this.targets = [];
@@ -4442,6 +5159,15 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method addTarget
+	 * @param {} fullSid
+	 * @param {} transform
+	 * @param {} member
+	 * @param {} data
+	 * @return
+	 */
 	Key.prototype.addTarget = function ( fullSid, transform, member, data ) {
 
 		this.targets.push( {
@@ -4453,6 +5179,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method apply
+	 * @param {} opt_sid
+	 * @return
+	 */
 	Key.prototype.apply = function ( opt_sid ) {
 
 		for ( var i = 0; i < this.targets.length; ++ i ) {
@@ -4469,6 +5201,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getTarget
+	 * @param {} fullSid
+	 * @return Literal
+	 */
 	Key.prototype.getTarget = function ( fullSid ) {
 
 		for ( var i = 0; i < this.targets.length; ++ i ) {
@@ -4485,6 +5223,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method hasTarget
+	 * @param {} fullSid
+	 * @return Literal
+	 */
 	Key.prototype.hasTarget = function ( fullSid ) {
 
 		for ( var i = 0; i < this.targets.length; ++ i ) {
@@ -4502,6 +5246,13 @@ THREE.ColladaLoader = function () {
 	};
 
 	// TODO: Currently only doing linear interpolation. Should support full COLLADA spec.
+	/**
+	 * Description
+	 * @method interpolate
+	 * @param {} nextKey
+	 * @param {} time
+	 * @return
+	 */
 	Key.prototype.interpolate = function ( nextKey, time ) {
 
 		for ( var i = 0, l = this.targets.length; i < l; i ++ ) {
@@ -4548,6 +5299,11 @@ THREE.ColladaLoader = function () {
 	};
 
 	// Camera
+	/**
+	 * Description
+	 * @method Camera
+	 * @return
+	 */
 	function Camera() {
 
 		this.id = "";
@@ -4556,6 +5312,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Camera.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -4584,6 +5346,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseOptics
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Camera.prototype.parseOptics = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -4668,12 +5436,23 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method InstanceCamera
+	 * @return
+	 */
 	function InstanceCamera() {
 
 		this.url = "";
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	InstanceCamera.prototype.parse = function ( element ) {
 
 		this.url = element.getAttribute('url').replace(/^#/, '');
@@ -4684,6 +5463,11 @@ THREE.ColladaLoader = function () {
 
 	// Light
 
+	/**
+	 * Description
+	 * @method Light
+	 * @return
+	 */
 	function Light() {
 
 		this.id = "";
@@ -4692,6 +5476,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Light.prototype.parse = function ( element ) {
 
 		this.id = element.getAttribute( 'id' );
@@ -4725,6 +5515,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseCommon
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Light.prototype.parseCommon = function ( element ) {
 
 		for ( var i = 0; i < element.childNodes.length; i ++ ) {
@@ -4774,6 +5570,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseTechnique
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Light.prototype.parseTechnique = function ( element ) {
 
 		this.profile = element.getAttribute( 'profile' );
@@ -4797,12 +5599,23 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method InstanceLight
+	 * @return
+	 */
 	function InstanceLight() {
 
 		this.url = "";
 
 	};
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	InstanceLight.prototype.parse = function ( element ) {
 
 		this.url = element.getAttribute('url').replace(/^#/, '');
@@ -4811,6 +5624,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method KinematicsModel
+	 * @return
+	 */
 	function KinematicsModel( ) {
 
 		this.id = '';
@@ -4820,6 +5638,12 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	KinematicsModel.prototype.parse = function( element ) {
 
 		this.id = element.getAttribute('id');
@@ -4850,6 +5674,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method parseCommon
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	KinematicsModel.prototype.parseCommon = function( element ) {
 
 		for (var i = 0; i < element.childNodes.length; i ++ ) {
@@ -4878,6 +5708,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Joint
+	 * @return
+	 */
 	function Joint( ) {
 
 		this.sid = '';
@@ -4894,6 +5729,12 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Joint.prototype.parse = function( element ) {
 
 		this.sid = element.getAttribute('sid');
@@ -4947,6 +5788,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Link
+	 * @return
+	 */
 	function Link( ) {
 
 		this.sid = '';
@@ -4956,6 +5802,12 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Link.prototype.parse = function( element ) {
 
 		this.sid = element.getAttribute('sid');
@@ -4993,6 +5845,11 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method Attachment
+	 * @return
+	 */
 	function Attachment( ) {
 
 		this.joint = '';
@@ -5001,6 +5858,12 @@ THREE.ColladaLoader = function () {
 
 	}
 
+	/**
+	 * Description
+	 * @method parse
+	 * @param {} element
+	 * @return ThisExpression
+	 */
 	Attachment.prototype.parse = function( element ) {
 
 		this.joint = element.getAttribute('joint').split('/').pop();
@@ -5193,6 +6056,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method loadTextureImage
+	 * @param {} texture
+	 * @param {} url
+	 * @return
+	 */
 	function loadTextureImage ( texture, url ) {
 
 		loader = new THREE.ImageLoader();
@@ -5206,6 +6076,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method extractDoubleSided
+	 * @param {} obj
+	 * @param {} element
+	 * @return
+	 */
 	function extractDoubleSided( obj, element ) {
 
 		obj.doubleSided = false;
@@ -5226,6 +6103,11 @@ THREE.ColladaLoader = function () {
 
 	// Up axis conversion
 
+	/**
+	 * Description
+	 * @method setUpConversion
+	 * @return
+	 */
 	function setUpConversion() {
 
 		if ( options.convertUpAxis !== true || colladaUp === options.upAxis ) {
@@ -5257,6 +6139,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method fixCoords
+	 * @param {} data
+	 * @param {} sign
+	 * @return
+	 */
 	function fixCoords( data, sign ) {
 
 		if ( options.convertUpAxis !== true || colladaUp === options.upAxis ) {
@@ -5315,6 +6204,13 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getConvertedTranslation
+	 * @param {} axis
+	 * @param {} data
+	 * @return data
+	 */
 	function getConvertedTranslation( axis, data ) {
 
 		if ( options.convertUpAxis !== true || colladaUp === options.upAxis ) {
@@ -5340,6 +6236,13 @@ THREE.ColladaLoader = function () {
 		return data;
 	};
 
+	/**
+	 * Description
+	 * @method getConvertedVec3
+	 * @param {} data
+	 * @param {} offset
+	 * @return NewExpression
+	 */
 	function getConvertedVec3( data, offset ) {
 
 		var arr = [ data[ offset ], data[ offset + 1 ], data[ offset + 2 ] ];
@@ -5348,6 +6251,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getConvertedMat4
+	 * @param {} data
+	 * @return CallExpression
+	 */
 	function getConvertedMat4( data ) {
 
 		if ( options.convertUpAxis ) {
@@ -5405,6 +6314,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getConvertedIndex
+	 * @param {} index
+	 * @return index
+	 */
 	function getConvertedIndex( index ) {
 
 		if ( index > -1 && index < 3 ) {
@@ -5421,6 +6336,12 @@ THREE.ColladaLoader = function () {
 
 	};
 
+	/**
+	 * Description
+	 * @method getConvertedMember
+	 * @param {} member
+	 * @return member
+	 */
 	function getConvertedMember( member ) {
 
 		if ( options.convertUpAxis ) {

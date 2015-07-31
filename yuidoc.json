@@ -1,0 +1,16 @@
+{
+  "name": "ShakirigamiDoc",
+  "description": "ShakirigamiDoc documentation tool written in JavaScript",
+  "version": "0.1",
+  "options": {
+    "linkNatives": "true",
+    "attributesEmit": "true",
+      "exclude":
+      "esperanca,lib"
+    ,
+    "paths": [
+      "./js"
+    ],
+    "outdir": "doc"
+  }
+}

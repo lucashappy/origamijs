@@ -152,10 +152,10 @@
 
     <div class="setMode btn-group" data-toggle="buttons">
         <h4>Mode</h4>
-        <label class="btn btn-primary active">
+        <label class="btn btn-primary">
             <input type="radio" name="options" id="optionDraw" autocomplete="off"> Draw
         </label>
-        <label class="btn btn-primary">
+        <label class="btn btn-primary active">
             <input type="radio" name="options" id="option3D" autocomplete="off"> 3D
         </label>
         <button type="button" id="triangulateBtn" class="btn btn-default">Triangulate</button>
@@ -167,12 +167,15 @@
             <span class="caret"></span>
         </button>
         <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
+                        <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('simple_card.dae');return false;">SimpleCard</a>
+            </li>
             <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('01_RoyalCrescent2b.dae');return false;">1.Royal</a>
             </li>
             <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('06_TokyoIT_3_edges.dae');return false;">2.TokyoIT</a>
             </li>
             <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('06_TokyoIT_marked.dae');return false;">2.TokyoIT_marked</a>
             </li>
+
             <!--  <li role="presentation" class="divider"></li>
             <li role="presentation"><a role="menuitem" tabindex="-1" href="#">About Us</a>
             </li>-->

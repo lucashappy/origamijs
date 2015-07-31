@@ -1,0 +1,3 @@
+[submodule "js/esperanca"]
+	path = js/esperanca
+	url = https://github.com/esperanc/origamijs.git

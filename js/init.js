@@ -50,197 +50,7 @@ loader.load(meshURL, function (collada) {
 
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
 
-/**
- * Marks all selected edges as being of the given edge type
- *
- * @method labelEdge
- * @param {String} edgeType
- */
-function labelEdge(edgeType) {
-    for (var i = 0; i < selected.length; i++) {
-        if (selected[i].halfedge.edgeType == "Border") continue;
-        selected[i].material.color.setHex(edgeTypeColor[edgeType]);
-        selected[i].halfedge.edgeType = edgeType;
-    }
-    deselectAll();
-}
-
-
-/**
- * Deselects all edges
- *
- * @method deselectAll
- */
-function deselectAll() {
-    for (var i = 0; i < selected.length; i++) {
-        selected[i].material.gapSize = 0;
-    }
-    selected = [];
-}
-
-/**
- * Set all edges as flat edges
- * @method allFlat
- * @return
- */
-function allFlat() {
-    selected = [];
-    for (var i = 0; i < edges.children.length; i++) {
-        selected.push(edges.children[i]);
-    }
-    labelEdge("Flat");
-}
-
-
-/**
- * Processes edges to be cut, possibly altering hds.
- * Returns true if hds was modified.
- *
- * @method processCuts
- * @return BinaryExpression
- */
-function processCuts() {
-    var vtxToSnip = [];
-    var cutCount = 0;
-    hds.allEdges(function (he, phe) {
-        var ohe = hds.halfedge[he.opp];
-        var edgeType = he.edgeType || ohe.edgeType;
-        if (edgeType == "Cut") {
-            he.edgeType = ohe.edgeType = undefined;
-            check_hds(hds);
-            cutEdge(hds, he);
-            cutCount++;
-            if (vtxToSnip.indexOf(he.vtx) < 0) vtxToSnip.push(he.vtx);
-            if (vtxToSnip.indexOf(ohe.vtx) < 0) vtxToSnip.push(ohe.vtx);
-        }
-    });
-    var snipCount = 0;
-    while (vtxToSnip.length > 0) {
-        var newvtx_h;
-        var i = vtxToSnip[0];
-        vtxToSnip.splice(0, 1);
-        while (newvtx_h = snipVertex(hds, i)) {
-            snipCount++;
-            if (vtxToSnip.indexOf(newvtx_h.vtx) < 0) vtxToSnip.push(newvtx_h.vtx);
-        }
-    }
-    console.log(cutCount, snipCount);
-    return cutCount + snipCount > 0;
-}
-
-
-/**
- * Creates constraints, i.e., a set of dihedral and linear constraints
- * from halfedge data structure hds
- *
- * @method hdsToConstraints
- */
-function hdsToConstraints() {
-
-    check_hds(hds);
-    if (processCuts()) {
-        check_hds(hds);
-        hdsCreateVertexVectors(hds);
-        objectsFromHds();
-    }
-
-    constraints = [[], []];
-    var angsum = 0;
-    hds.allEdges(function (he, phe) {
-        var ohe = hds.halfedge[he.opp];
-        var v0 = hds.vertex[he.vtx];
-        var v1 = hds.vertex[phe.vtx];
-        var sz = he.sz || ohe.sz || v0.sub(v1).mag();
-        he.sz = ohe.sz = sz;
-        var lc = new LinearConstraint(v0, v1, sz);
-        constraints[0].push(lc);
-        if (he.fac >= 0 && ohe.fac >= 0) {
-            var v2 = hds.vertex[hds.halfedge[he.nxt].vtx];
-            var v3 = hds.vertex[hds.halfedge[ohe.nxt].vtx];
-            var edgeType = he.edgeType || ohe.edgeType;
-            var angle = (edgeType == "Ridge") ? Math.PI / 2 :
-                (edgeType == "Valley") ? -Math.PI / 2 :
-                0;
-            var dc = new DihedralConstraint(v0, v1, v2, v3, angle);
-            constraints[1].push(dc);
-            angsum += dc.discrepancy();
-        }
-    });
-    console.log("Total discrepancy", angsum);
-}
-
-
-/**
- * Performs one step of the relaxation process
- *
- * @method relaxOneStep
- */
-function relaxOneStep() {
-    var n = 10;
-    var lc = constraints[0],
-        dc = constraints[1];
-    for (var k = 0; k < n; k++) {
-        var f = (k + 1 + n) / (n + n);
-        for (var i = 0; i < dc.length; i++) {
-            var c = dc[i];
-            c.relax(f);
-        }
-        for (var i = 0; i < lc.length; i++) {
-            var c = lc[i];
-            c.relax(f);
-        }
-    }
-    hdsUpdateVertexVectors(hds);
-    mesh.geometry.verticesNeedUpdate = true;
-    mesh.geometry.computeFaceNormals();
-    mesh.geometry.normalsNeedUpdate = true;
-    var e = edges.children;
-    for (var i = 0; i < e.length; i++) {
-        e[i].geometry.verticesNeedUpdate = true;
-    }
-}
-
-
-
-/**
- * Reset an object to its original state
- * @method loadMesh
- * @param {} newMesh Mesh to be loaded
- * @param {Boolean} fromDraw true if mesh was originated from a canvas draw
- */
-function loadMesh(newMesh, fromDraw) {
-
-    $(".gui input[value='edge']").click();
-    $('.states-list').empty()
-    if (fromDraw)
-        hds = halfedgeFromDraw(newMesh);
-    else
-        hds = halfedgeFromMesh(newMesh);
-    objectsFromHds();
-}
-
-
-/**
- * Function that returns the active interaction mode
- * @method getActiveMode
- * @return activeGui
- */
-function getActiveMode() {
-    var activeGui;
-    var gui = d3.select("div.gui");
-    gui.selectAll("input.modeSelect").each(function () {
-        var sel = d3.select(this);
-        var value = sel.attr("value");
-        var checked = sel.property("checked");
-        if (checked) activeGui = value;
-        /*  gui.select("div." + value + "Gui").style("visibility", function () {
-              //if (checked) return "visible";
-              //return "hidden";
-              return "visible";
-          })*/
-    })
-    return activeGui;
-}
+///// INITIALIZATION
 
 /**
  * Initialize the Graphic User Interface
@@ -332,52 +142,29 @@ function initInterface() {
         update();
 
     })
-
-
-
 }
 
 /**
- * Triangulate a draw and generate the corresponding mesh
- * @method triangulate
+ * Function that returns the active interaction mode
+ * @method getActiveMode
+ * @return activeGui
  */
-function triangulate() {
-    console.log("Triangulate!");
-    var swctx = new poly2tri.SweepContext(drawExternalVertices);
-    swctx.addPoints(drawInternalVertices);
-    swctx.triangulate();
-    loadMesh(swctx, true)
-    allFlat()
-    $("#option3D").click();
-    generateXMLFromMesh()
+function getActiveMode() {
+    var activeGui;
+    var gui = d3.select("div.gui");
+    gui.selectAll("input.modeSelect").each(function () {
+        var sel = d3.select(this);
+        var value = sel.attr("value");
+        var checked = sel.property("checked");
+        if (checked) activeGui = value;
+        /*  gui.select("div." + value + "Gui").style("visibility", function () {
+              //if (checked) return "visible";
+              //return "hidden";
+              return "visible";
+          })*/
+    })
+    return activeGui;
 }
-
-
-/**
- * From hds, a halfedge data structure, creates a mesh and line objects
- * for the edges. Scene is cleared and the objects are added to the scene
- * @method objectsFromHds
- */
-function objectsFromHds() {
-    if (mesh != undefined) scene.remove(mesh);
-    if (edges != undefined) scene.remove(edges);
-
-    // Add the surface
-    var geometry = halfedgeGeometry(hds);
-    var material = new THREE.MeshLambertMaterial({
-        color: 0xffffff,
-        shading: THREE.FlatShading,
-        side: THREE.DoubleSide
-    });
-    mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-
-    /* Add cylinders for the edges of mesh */
-    edges = new THREE.Object3D();
-    addHdsEdgeLines(hds, edges);
-    scene.add(edges);
-}
-
 
 /**
  * Initialize the 3D stage
@@ -393,7 +180,7 @@ function init3DStage() {
     renderer.setClearColor(0xc3c3c3);
     document.getElementById("stage3D").appendChild(renderer.domElement);
 
-    setSelectionCanvas();
+    initSelectionCanvas();
 
     // Define Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
@@ -439,10 +226,23 @@ function init3DStage() {
 }
 
 /**
- * Initialize canvas to display the selection box
- * @method setSelectionCanvas
+ * Window resize callback
+ * @method onWindowResize
  */
-function setSelectionCanvas() {
+function onWindowResize() {
+
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    initSelectionCanvas();
+
+}
+
+/**
+ * Initialize canvas to display the selection box
+ * @method initSelectionCanvas
+ */
+function initSelectionCanvas() {
     //Selection anvas
     var c = document.getElementById("myCanvas");
     c.width = window.innerWidth;
@@ -456,18 +256,25 @@ function setSelectionCanvas() {
 }
 
 /**
- * Window resize callback
- * @method onWindowResize
+ * Update 3D scene
+ * @method update
+ * @return
  */
-function onWindowResize() {
+function update() {
 
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    setSelectionCanvas();
+    if (!drawingMode) {
+        var delta = clock.getDelta();
+        trackballControls.update(delta);
+        if (getActiveMode() == "anim" && relaxCount > 0) {
+            relaxOneStep();
+            relaxCount--;
+        }
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(update);
+    }
 
 }
-
 
 /**
  * Shortcuts
@@ -505,20 +312,7 @@ document.addEventListener('keydown', function (event) {
 
 });
 
-/**
- * Hide/show flat edges of the mesh
- * @method toggleFlatEdges
- */
-function toggleFlatEdges() {
-
-    hideFlatEdges = !hideFlatEdges;
-
-    edges.children.forEach(function (edge) {
-        if (edge.halfedge.edgeType == "Flat") {
-            edge.visible = hideFlatEdges
-        }
-    });
-}
+///// MOUSE INTERACTION
 
 /**
  * Handle mouse down events
@@ -578,6 +372,374 @@ function onWindowMouseUp(event) {
     initY = -1
     document.body.style.cursor = 'pointer';
 }
+
+
+/**
+ * Handle mouse click events
+ * @method onWindowClick
+ * @param {} event
+ */
+function onWindowClick(event) {
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Add clicked object to selection
+    selectObject();
+}
+
+/**
+ * Handle mousemove evens
+ * @method onWindowMouseMove
+ * @param {} event
+ */
+function onWindowMouseMove(event) {
+
+    if (initX > -1 || initY > -1) {
+        drawSelectionBox(event.clientX, event.clientY)
+    }
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(edges.children);
+
+
+    if (highlighted != undefined) {
+        highlighted.material.color = saveMaterialColor;
+    }
+
+    if (intersects.length > 0) {
+        var edge = intersects[0].object;
+        if (edge.halfedge.edgeType != "Border") {
+            highlighted = edge;
+            saveMaterialColor = highlighted.material.color;
+            highlighted.material.color = highlightMaterialColor;
+        }
+    }
+}
+
+///// EDGE TYPES (cut, valley, ridge)
+
+/**
+ * Marks all selected edges as being of the given edge type
+ *
+ * @method labelEdge
+ * @param {String} edgeType
+ */
+function labelEdge(edgeType) {
+    for (var i = 0; i < selected.length; i++) {
+        if (selected[i].halfedge.edgeType == "Border") continue;
+        selected[i].material.color.setHex(edgeTypeColor[edgeType]);
+        selected[i].halfedge.edgeType = edgeType;
+    }
+    deselectAll();
+}
+
+
+/**
+ * Deselects all edges
+ *
+ * @method deselectAll
+ */
+function deselectAll() {
+    for (var i = 0; i < selected.length; i++) {
+        selected[i].material.gapSize = 0;
+    }
+    selected = [];
+}
+
+/**
+ * Set all edges as flat edges
+ * @method allFlat
+ * @return
+ */
+function allFlat() {
+    selected = [];
+    for (var i = 0; i < edges.children.length; i++) {
+        selected.push(edges.children[i]);
+    }
+    labelEdge("Flat");
+}
+
+
+/**
+ * Processes edges to be cut, possibly altering hds.
+ * Returns true if hds was modified.
+ *
+ * @method processCuts
+ * @return BinaryExpression
+ */
+function processCuts() {
+    var vtxToSnip = [];
+    var cutCount = 0;
+    hds.allEdges(function (he, phe) {
+        var ohe = hds.halfedge[he.opp];
+        var edgeType = he.edgeType || ohe.edgeType;
+        if (edgeType == "Cut") {
+            he.edgeType = ohe.edgeType = undefined;
+            check_hds(hds);
+            cutEdge(hds, he);
+            cutCount++;
+            if (vtxToSnip.indexOf(he.vtx) < 0) vtxToSnip.push(he.vtx);
+            if (vtxToSnip.indexOf(ohe.vtx) < 0) vtxToSnip.push(ohe.vtx);
+        }
+    });
+    var snipCount = 0;
+    while (vtxToSnip.length > 0) {
+        var newvtx_h;
+        var i = vtxToSnip[0];
+        vtxToSnip.splice(0, 1);
+        while (newvtx_h = snipVertex(hds, i)) {
+            snipCount++;
+            if (vtxToSnip.indexOf(newvtx_h.vtx) < 0) vtxToSnip.push(newvtx_h.vtx);
+        }
+    }
+    console.log(cutCount, snipCount);
+    return cutCount + snipCount > 0;
+}
+
+/**
+ * Hide/show flat edges of the mesh
+ * @method toggleFlatEdges
+ */
+function toggleFlatEdges() {
+
+    hideFlatEdges = !hideFlatEdges;
+
+    edges.children.forEach(function (edge) {
+        if (edge.halfedge.edgeType == "Flat") {
+            edge.visible = hideFlatEdges
+        }
+    });
+}
+
+///// EDGE TYPES: xmlrepresentation
+
+/**
+ * Read edge type information from the collada file of the mesh
+ * @method loadEdgeTypes
+ */
+function loadEdgeTypes() {
+
+    var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type")
+
+    for (var i = 0; i < edgeTypeTags.length; i++) {
+        addState(i);
+    }
+
+    $('.state-item').last().trigger("click");
+    parseEdgeTypeByIndex(edgeTypeTags.length - 1)
+}
+
+/**
+ * Parse all edge type collections from the xml file
+ * @method parseEdgeTypeByIndex
+ * @param {} index
+ */
+function parseEdgeTypeByIndex(index) {
+    console.log("index " + index);
+    allFlat();
+    var edgeTypeNode = xmlDoc.getElementsByTagName("edge_type")[index]
+    parseEdgeType(edgeTypeNode, "cuts", "Cut");
+    parseEdgeType(edgeTypeNode, "ridges", "Ridge");
+    parseEdgeType(edgeTypeNode, "valleys", "Valley");
+}
+
+
+/**
+ * Parse a edge type collection from the xml file
+ * @method parseEdgeType
+ * @param {} edgeTypeNode
+ * @param {} tag
+ * @param {} label
+ */
+function parseEdgeType(edgeTypeNode, tag, label) {
+    var ridges = edgeTypeNode.getElementsByTagName(tag)[0].innerHTML.split(" ");
+    for (var i = 0; i < ridges.length; i++) {
+        var index = parseInt(ridges[i])
+        if (!isNaN(index)) {
+            selected.push(edges.children[index])
+            labelEdge(label)
+        }
+    }
+}
+
+///// SIMULATION
+
+/**
+ * Creates constraints, i.e., a set of dihedral and linear constraints
+ * from halfedge data structure hds
+ *
+ * @method hdsToConstraints
+ */
+function hdsToConstraints() {
+
+    check_hds(hds);
+    if (processCuts()) {
+        check_hds(hds);
+        hdsCreateVertexVectors(hds);
+        objectsFromHds();
+    }
+
+    constraints = [[], []];
+    var angsum = 0;
+    hds.allEdges(function (he, phe) {
+        var ohe = hds.halfedge[he.opp];
+        var v0 = hds.vertex[he.vtx];
+        var v1 = hds.vertex[phe.vtx];
+        var sz = he.sz || ohe.sz || v0.sub(v1).mag();
+        he.sz = ohe.sz = sz;
+        var lc = new LinearConstraint(v0, v1, sz);
+        constraints[0].push(lc);
+        if (he.fac >= 0 && ohe.fac >= 0) {
+            var v2 = hds.vertex[hds.halfedge[he.nxt].vtx];
+            var v3 = hds.vertex[hds.halfedge[ohe.nxt].vtx];
+            var edgeType = he.edgeType || ohe.edgeType;
+            var angle = (edgeType == "Ridge") ? Math.PI / 2 :
+                (edgeType == "Valley") ? -Math.PI / 2 :
+                0;
+            var dc = new DihedralConstraint(v0, v1, v2, v3, angle);
+            constraints[1].push(dc);
+            angsum += dc.discrepancy();
+        }
+    });
+    console.log("Total discrepancy", angsum);
+}
+
+
+/**
+ * Performs one step of the relaxation process
+ *
+ * @method relaxOneStep
+ */
+function relaxOneStep() {
+    var n = 10;
+    var lc = constraints[0],
+        dc = constraints[1];
+    for (var k = 0; k < n; k++) {
+        var f = (k + 1 + n) / (n + n);
+        for (var i = 0; i < dc.length; i++) {
+            var c = dc[i];
+            c.relax(f);
+        }
+        for (var i = 0; i < lc.length; i++) {
+            var c = lc[i];
+            c.relax(f);
+        }
+    }
+    hdsUpdateVertexVectors(hds);
+    mesh.geometry.verticesNeedUpdate = true;
+    mesh.geometry.computeFaceNormals();
+    mesh.geometry.normalsNeedUpdate = true;
+    var e = edges.children;
+    for (var i = 0; i < e.length; i++) {
+        e[i].geometry.verticesNeedUpdate = true;
+    }
+}
+
+///// DRAWING CANVAS
+
+/**
+ * Drawing canvas background
+ * @method drawingModeCanvas
+ * @return
+ */
+function drawingModeCanvas() {
+
+    var c = document.getElementById("bgCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    var bgctx = c.getContext("2d");
+
+    bgctx.fillStyle = "white"
+    bgctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
+
+    //papersheet
+    bgctx.setLineDash([])
+    bgctx.strokeStyle = "gray"
+    bgctx.lineWidth = 1.0
+
+    var h = window.innerHeight - 60,
+        w = (2 / 3.0) * h,
+        x = (window.innerWidth - w) / 2.0,
+        y = 20;
+
+    originX = x + (w / 2);
+    originY = y + (h / 2);
+
+
+    bgctx.rect(x, y, w, h)
+    bgctx.fill()
+    bgctx.stroke()
+
+
+    //middle fold
+    bgctx.strokeStyle = "aqua"
+    bgctx.beginPath()
+    bgctx.moveTo(x, (h / 2.0) + y)
+    bgctx.lineTo(x + w, (h / 2.0) + y)
+    bgctx.stroke()
+    bgctx.closePath()
+
+
+    //Add page vertices to triangulation
+    drawExternalVertices = []
+    drawExternalVertices.push(formatPoint(x, y));
+    drawExternalVertices.push(formatPoint(x + w, y));
+    drawExternalVertices.push(formatPoint(x + w, y + (h / 2)));
+    drawExternalVertices.push(formatPoint(x + w, y + h));
+    drawExternalVertices.push(formatPoint(x, y + h));
+    drawExternalVertices.push(formatPoint(x, y + (h / 2)));
+
+
+    //Draw Layer
+    var c = document.getElementById("drawCanvas");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+    c.style.pointerEvents = 'none';
+    draw = c.getContext("2d");
+
+}
+
+
+/**
+ * Normalize a canvas point to the triangulation
+ * @method formatPoint
+ * @param {} px
+ * @param {} py
+ * @return ObjectExpression
+ */
+function formatPoint(px, py) {
+    var nx = -(px - originX), //why?
+        ny = -(py - originY);
+
+    return {
+        x: nx,
+        y: ny,
+        id: drawExternalVertices.length + drawInternalVertices.length
+    }
+}
+
+/**
+ * Triangulate a draw and generate the corresponding mesh
+ * @method triangulate
+ */
+function triangulate() {
+    console.log("Triangulate!");
+    var swctx = new poly2tri.SweepContext(drawExternalVertices);
+    swctx.addPoints(drawInternalVertices);
+    swctx.triangulate();
+    loadMesh(swctx, true)
+    allFlat()
+    $("#option3D").click();
+    generateXMLFromMesh()
+}
+
+
+///// SELECTION OF EDGES
 
 /**
  * Box selection of edges
@@ -664,53 +826,6 @@ function get3dPoint(x, y, z) {
     return vector.unproject(camera);
 }
 
-
-/**
- * Handle mouse click events
- * @method onWindowClick
- * @param {} event
- */
-function onWindowClick(event) {
-
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    // Add clicked object to selection
-    selectObject();
-}
-
-/**
- * Handle mousemove evens
- * @method onWindowMouseMove
- * @param {} event
- */
-function onWindowMouseMove(event) {
-
-    if (initX > -1 || initY > -1) {
-        drawSelectionBox(event.clientX, event.clientY)
-    }
-
-    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(edges.children);
-
-
-    if (highlighted != undefined) {
-        highlighted.material.color = saveMaterialColor;
-    }
-
-    if (intersects.length > 0) {
-        var edge = intersects[0].object;
-        if (edge.halfedge.edgeType != "Border") {
-            highlighted = edge;
-            saveMaterialColor = highlighted.material.color;
-            highlighted.material.color = highlightMaterialColor;
-        }
-    }
-}
-
 /**
  * Draw the selection box
  * @method addSelection
@@ -762,26 +877,33 @@ function selectObject() {
 }
 
 
+///// HALFEDGE OPERATIONS
+
 /**
- * Update 3D scene
- * @method update
- * @return
+ * From hds, a halfedge data structure, creates a mesh and line objects
+ * for the edges. Scene is cleared and the objects are added to the scene
+ * @method objectsFromHds
  */
-function update() {
+function objectsFromHds() {
+    if (mesh != undefined) scene.remove(mesh);
+    if (edges != undefined) scene.remove(edges);
 
-    if (!drawingMode) {
-        var delta = clock.getDelta();
-        trackballControls.update(delta);
-        if (getActiveMode() == "anim" && relaxCount > 0) {
-            relaxOneStep();
-            relaxCount--;
-        }
+    // Add the surface
+    var geometry = halfedgeGeometry(hds);
+    var material = new THREE.MeshLambertMaterial({
+        color: 0xffffff,
+        shading: THREE.FlatShading,
+        side: THREE.DoubleSide
+    });
+    mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
 
-        renderer.render(scene, camera);
-        requestAnimationFrame(update);
-    }
-
+    /* Add cylinders for the edges of mesh */
+    edges = new THREE.Object3D();
+    addHdsEdgeLines(hds, edges);
+    scene.add(edges);
 }
+
 
 /**
  * Returns a THREE.Geometry object from a halfedge data structure
@@ -951,6 +1073,7 @@ function paperHalfedge(n, m, s) {
     function iv(i, j) {
         return i * m + j
     };
+
     var fac = [],
         vtx = [];
     var x0 = -(n - 1) * s / 2;
@@ -1018,6 +1141,34 @@ function halfedgeFromDraw(swctx) {
     return hds;
 }
 
+///// MESH: LOADING, DOWNLOADING
+
+/**
+ * Reset an object to its original state
+ * @method loadMesh
+ * @param {} newMesh Mesh to be loaded
+ * @param {Boolean} fromDraw true if mesh was originated from a canvas draw
+ */
+function loadMesh(newMesh, fromDraw) {
+
+    $(".gui input[value='edge']").click();
+    $('.states-list').empty()
+    if (fromDraw)
+        hds = halfedgeFromDraw(newMesh);
+    else
+        hds = halfedgeFromMesh(newMesh);
+    objectsFromHds();
+}
+
+/**
+ * Download a mesh
+ * @method downloadMesh
+ */
+function downloadMesh() {
+    saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
+}
+
+///// FILE IO
 var saveData = (function () {
     var a = document.createElement("a");
     document.body.appendChild(a);
@@ -1035,11 +1186,108 @@ var saveData = (function () {
 }());
 
 /**
- * Download a mesh
- * @method downloadMesh
+ * Handle local file selection (of a mesh object)
+ * @method handleFileSelect
+ * @param {} evt
+ * @return
  */
-function downloadMesh() {
-    saveData(new XMLSerializer().serializeToString(xmlDoc), "teste.dae");
+function handleFileSelect(evt) {
+
+    var file = evt.target.files[0]; // FileList object
+
+    var reader = new FileReader();
+
+    // Closure to capture the file information.
+    reader.onload = (function (theFile) {
+        return function (e) {
+
+            meshURL = e.target.result
+            loader.load(meshURL, function (collada) {
+                dae = collada.scene;
+                var geoMesh = dae.children[0].children[0].geometry
+                loadMesh(geoMesh)
+                getColladaFileFromURL();
+
+            });
+        };
+    })(file);
+
+    // Read in the image file as a data URL.
+    reader.readAsDataURL(file);
+};
+
+/**
+ * Load model from server
+ * @method loadModel
+ * @param {} fileName filename of the file in the models folder
+ * @return
+ */
+function loadModel(fileName) {
+
+    meshURL = "./models/" + fileName
+    var loader = new THREE.ColladaLoader();
+    loader.options.convertUpAxis = true;
+    loader.load(meshURL, function (collada) {
+
+        dae = collada.scene;
+        geoMesh = dae.children[0].children[0].geometry
+        loadMesh(geoMesh);
+        getColladaFileFromURL();
+
+    });
+}
+
+/**
+ * Generate a XML representation of the mesh in the collada format
+ * @method generateXMLFromMesh
+ * @return
+ */
+function generateXMLFromMesh() {
+
+    xmlhttp = new XMLHttpRequest();
+    xmlhttp.open("GET", "./models/default.dae", true);
+    xmlhttp.send();
+
+    /**
+     * Description
+     * @method onreadystatechange
+     * @return
+     */
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+            console.log(xmlhttp.responseXML)
+            xmlDoc = xmlhttp.responseXML;
+
+            //Vertices
+            var vtx = ""
+            hds.vecVertex.forEach(function (vertex) {
+                vtx += vertex.x + " " + vertex.y + " " + vertex.z + " "
+            })
+
+            //Faces
+            var fac = "",
+                facV = "";
+
+            hds.face.forEach(function (face) {
+                console.log('face');
+                fac += face[0] + " " + face[1] + " " + face[2] + " "
+                facV += "3 "
+            })
+
+
+            var meshTag = xmlDoc.getElementById("Kirigami-mesh");
+
+            if (meshTag) {
+                meshTag.getElementsByTagName("float_array")[0].innerHTML = vtx;
+                meshTag.getElementsByTagName("float_array")[0].setAttribute("count", hds.vecVertex.length * 3);
+                meshTag.getElementsByTagName("accessor")[0].setAttribute("count", hds.vecVertex.length);
+                meshTag.getElementsByTagName("polylist")[0].setAttribute("count", hds.face.length);
+                meshTag.getElementsByTagName("vcount")[0].innerHTML = facV;
+                meshTag.getElementsByTagName("p")[0].innerHTML = fac;
+
+            }
+        }
+    }
 }
 
 
@@ -1063,54 +1311,7 @@ function getColladaFileFromURL() {
     }
 }
 
-/**
- * Read edge type information from the collada file of the mesh
- * @method loadEdgeTypes
- */
-function loadEdgeTypes() {
-
-    var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type")
-
-    for (var i = 0; i < edgeTypeTags.length; i++) {
-        addState(i);
-    }
-
-    $('.state-item').last().trigger("click");
-    parseEdgeTypeByIndex(edgeTypeTags.length - 1)
-}
-
-/**
- * Parse all edge type collections from the xml file
- * @method parseEdgeTypeByIndex
- * @param {} index
- */
-function parseEdgeTypeByIndex(index) {
-    console.log("index " + index);
-    allFlat();
-    var edgeTypeNode = xmlDoc.getElementsByTagName("edge_type")[index]
-    parseEdgeType(edgeTypeNode, "cuts", "Cut");
-    parseEdgeType(edgeTypeNode, "ridges", "Ridge");
-    parseEdgeType(edgeTypeNode, "valleys", "Valley");
-}
-
-
-/**
- * Parse a edge type collection from the xml file
- * @method parseEdgeType
- * @param {} edgeTypeNode
- * @param {} tag
- * @param {} label
- */
-function parseEdgeType(edgeTypeNode, tag, label) {
-    var ridges = edgeTypeNode.getElementsByTagName(tag)[0].innerHTML.split(" ");
-    for (var i = 0; i < ridges.length; i++) {
-        var index = parseInt(ridges[i])
-        if (!isNaN(index)) {
-            selected.push(edges.children[index])
-            labelEdge(label)
-        }
-    }
-}
+///// STATES
 
 /**
  * Add new state (a scheme of cuts,ridges and valleys on the mesh)
@@ -1203,190 +1404,3 @@ function removeState(event) {
 
 }
 
-/**
- * Handle local file selection (of a mesh object)
- * @method handleFileSelect
- * @param {} evt
- * @return
- */
-function handleFileSelect(evt) {
-
-    var file = evt.target.files[0]; // FileList object
-
-    var reader = new FileReader();
-
-    // Closure to capture the file information.
-    reader.onload = (function (theFile) {
-        return function (e) {
-
-            meshURL = e.target.result
-            loader.load(meshURL, function (collada) {
-                dae = collada.scene;
-                var geoMesh = dae.children[0].children[0].geometry
-                loadMesh(geoMesh)
-                getColladaFileFromURL();
-
-            });
-        };
-    })(file);
-
-    // Read in the image file as a data URL.
-    reader.readAsDataURL(file);
-};
-
-
-/**
- * Drawing canvas background
- * @method drawingModeCanvas
- * @return
- */
-function drawingModeCanvas() {
-
-    var c = document.getElementById("bgCanvas");
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
-    c.style.pointerEvents = 'none';
-    var bgctx = c.getContext("2d");
-
-    bgctx.fillStyle = "white"
-    bgctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
-
-    //papersheet
-    bgctx.setLineDash([])
-    bgctx.strokeStyle = "gray"
-    bgctx.lineWidth = 1.0
-
-    var h = window.innerHeight - 60,
-        w = (2 / 3.0) * h,
-        x = (window.innerWidth - w) / 2.0,
-        y = 20;
-
-    originX = x + (w / 2);
-    originY = y + (h / 2);
-
-
-    bgctx.rect(x, y, w, h)
-    bgctx.fill()
-    bgctx.stroke()
-
-
-    //middle fold
-    bgctx.strokeStyle = "aqua"
-    bgctx.beginPath()
-    bgctx.moveTo(x, (h / 2.0) + y)
-    bgctx.lineTo(x + w, (h / 2.0) + y)
-    bgctx.stroke()
-    bgctx.closePath()
-
-
-    //Add page vertices to triangulation
-    drawExternalVertices = []
-    drawExternalVertices.push(formatPoint(x, y));
-    drawExternalVertices.push(formatPoint(x + w, y));
-    drawExternalVertices.push(formatPoint(x + w, y + (h / 2)));
-    drawExternalVertices.push(formatPoint(x + w, y + h));
-    drawExternalVertices.push(formatPoint(x, y + h));
-    drawExternalVertices.push(formatPoint(x, y + (h / 2)));
-
-
-    //Draw Layer
-    var c = document.getElementById("drawCanvas");
-    c.width = window.innerWidth;
-    c.height = window.innerHeight;
-    c.style.pointerEvents = 'none';
-    draw = c.getContext("2d");
-
-}
-
-
-/**
- * Normalize a canvas point to the triangulation
- * @method formatPoint
- * @param {} px
- * @param {} py
- * @return ObjectExpression
- */
-function formatPoint(px, py) {
-    var nx = -(px - originX), //why?
-        ny = -(py - originY);
-
-    return {
-        x: nx,
-        y: ny,
-        id: drawExternalVertices.length + drawInternalVertices.length
-    }
-}
-
-/**
- * Load model from server
- * @method loadModel
- * @param {} fileName filename of the file in the models folder
- * @return
- */
-function loadModel(fileName) {
-
-    meshURL = "./models/" + fileName
-    var loader = new THREE.ColladaLoader();
-    loader.options.convertUpAxis = true;
-    loader.load(meshURL, function (collada) {
-
-        dae = collada.scene;
-        geoMesh = dae.children[0].children[0].geometry
-        loadMesh(geoMesh);
-        getColladaFileFromURL();
-
-    });
-}
-
-/**
- * Generate a XML representation of the mesh in the collada format
- * @method generateXMLFromMesh
- * @return
- */
-function generateXMLFromMesh() {
-
-    xmlhttp = new XMLHttpRequest();
-    xmlhttp.open("GET", "./models/default.dae", true);
-    xmlhttp.send();
-
-    /**
-     * Description
-     * @method onreadystatechange
-     * @return
-     */
-    xmlhttp.onreadystatechange = function () {
-        if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
-            console.log(xmlhttp.responseXML)
-            xmlDoc = xmlhttp.responseXML;
-
-            //Vertices
-            var vtx = ""
-            hds.vecVertex.forEach(function (vertex) {
-                vtx += vertex.x + " " + vertex.y + " " + vertex.z + " "
-            })
-
-            //Faces
-            var fac = "",
-                facV = "";
-
-            hds.face.forEach(function (face) {
-                console.log('face');
-                fac += face[0] + " " + face[1] + " " + face[2] + " "
-                facV += "3 "
-            })
-
-
-            var meshTag = xmlDoc.getElementById("Kirigami-mesh");
-
-            if (meshTag) {
-                meshTag.getElementsByTagName("float_array")[0].innerHTML = vtx;
-                meshTag.getElementsByTagName("float_array")[0].setAttribute("count", hds.vecVertex.length * 3);
-                meshTag.getElementsByTagName("accessor")[0].setAttribute("count", hds.vecVertex.length);
-                meshTag.getElementsByTagName("polylist")[0].setAttribute("count", hds.face.length);
-                meshTag.getElementsByTagName("vcount")[0].innerHTML = facV;
-                meshTag.getElementsByTagName("p")[0].innerHTML = fac;
-
-            }
-        }
-    }
-}

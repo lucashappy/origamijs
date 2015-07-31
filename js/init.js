@@ -5,17 +5,18 @@
  * @constructor
  */
 
+var paper, wireframe, mesh, edgeCylinders;
 var camera, scene, renderer, controls, clock, trackballControls,
     hideFlatEdges = true,
-    drawingMode = true,
+    drawingMode = false,
     hideSidebar = false,
     drawExternalVertices = [],
     drawInternalVertices = [],
     drawVertices = [],
     originX = 0,
     originY = 0;
-var mesh, hds, edges, mouse, raycaster, selected = [],
-    meshURL = "./models/01_RoyalCrescent2b.dae",
+var hds, edges, mouse, raycaster, selected = [],
+    meshURL = "./models/simple_card.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -49,6 +50,10 @@ loader.load(meshURL, function (collada) {
 });
 
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
+
+if (!drawingMode) {
+    $("#stageDraw").hide();
+}
 
 ///// INITIALIZATION
 
@@ -103,19 +108,18 @@ function initInterface() {
             return d
         })
         .on("click", function (d, i) {
-            if (i == 0) relaxOneStep();
-            if (i == 1) relaxCount = 400;
+            if (i == 0) paper.relaxOneStep();
+            if (i == 1) relaxCount = 100;
         });
 
     gui.selectAll("input.modeSelect").on("click", function () {
         var activeGui = getActiveMode();
         if (activeGui == "edge") {
-            objectsFromHds();
-            scene.add(edges);
+            deselectAll();
+            //resetScene ();
         }
         if (activeGui == "anim") {
-            hdsToConstraints();
-            scene.remove(edges);
+            paper.computeConstraints();
         }
     })
 
@@ -184,7 +188,7 @@ function init3DStage() {
 
     // Define Camera
     camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
-    camera.position.z = -1000;
+    camera.position.z = 1000;
 
     // Define scene
     scene = new THREE.Scene();
@@ -204,8 +208,7 @@ function init3DStage() {
     scene.add(lights[1]);
 
     /* Define the object to be viewed */
-    hds = halfedgeFromMesh(geoMesh)
-    objectsFromHds();
+    loadMesh(geoMesh);
     getColladaFileFromURL();
 
 
@@ -215,6 +218,7 @@ function init3DStage() {
     /* The clock and trackball */
     clock = new THREE.Clock();
     trackballControls = new THREE.TrackballControls(camera, renderer.domElement);
+    trackballControls.rotateSpeed = 2.0;
 
     // Callbacks
     window.addEventListener('resize', onWindowResize, false);
@@ -223,6 +227,61 @@ function init3DStage() {
     window.addEventListener('mousemove', onWindowMouseMove, true);
     window.addEventListener('mousedown', onWindowMouseDown, true);
     window.addEventListener('mouseup', onWindowMouseUp, true);
+}
+
+//
+// Yields a different mesh material depending on the number of
+// the connected component of the triangle
+//
+function meshMaterial(component) {
+    var colors = [0xffffff, 0xffaaff, 0xffffaa, 0xaaffff,
+                  0xaaaaff, 0xffaaaa, 0xaaffaa];
+    return new THREE.MeshLambertMaterial({
+        color: colors[component % colors.length],
+        shading: THREE.FlatShading,
+        side: THREE.DoubleSide,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
+    });
+}
+
+//
+// Yields a proper material for drawing edges based on its type
+//
+function edgeMaterial(edge) {
+    var edgeTypeColor = {
+        "Cut": 0xff00000,
+        "Ridge": 0x0ffff00,
+        "Valley": 0x00ffff,
+        "Flat": 0x0000ff,
+        "Border": 0x777777
+    };
+    var material = new THREE.LineDashedMaterial({
+        color: edgeTypeColor[edge.type],
+        scale: 0.5,
+        linewidth: 3,
+        dashSize: 2,
+        gapSize: 0
+    });
+    return material;
+}
+
+//
+// Readds the paper object to the scene
+//
+function resetScene() {
+    if (wireframe != undefined) scene.remove(wireframe);
+    if (mesh != undefined) scene.remove(mesh);
+    wireframe = paper.wireframe(edgeMaterial);
+    mesh = paper.mesh(meshMaterial);
+    var activeUi = getActiveMode();
+    //if (activeUi == "edge" || activeUi == "file") {
+    scene.add(mesh, wireframe);
+    //} else {
+    //	scene.add(mesh);
+    //}
+    createEdgeCylinders();
 }
 
 /**
@@ -266,7 +325,8 @@ function update() {
         var delta = clock.getDelta();
         trackballControls.update(delta);
         if (getActiveMode() == "anim" && relaxCount > 0) {
-            relaxOneStep();
+            paper.relaxOneStep();
+            resetScene();
             relaxCount--;
         }
 
@@ -402,25 +462,46 @@ function onWindowMouseMove(event) {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(edges.children);
-
-
     if (highlighted != undefined) {
-        highlighted.material.color = saveMaterialColor;
+        wireframe.children[highlighted].material.gapSize = 0;
+        highlighted = undefined;
     }
 
+    //if (getActiveMode() != "edge") return;
+
+    raycaster.setFromCamera(mouse, camera);
+    var intersects = raycaster.intersectObjects(edgeCylinders.children);
+
     if (intersects.length > 0) {
-        var edge = intersects[0].object;
-        if (edge.halfedge.edgeType != "Border") {
-            highlighted = edge;
-            saveMaterialColor = highlighted.material.color;
-            highlighted.material.color = highlightMaterialColor;
+        var selectedCylinder = intersects[0].object;
+        for (var i in wireframe.children) {
+            if (edgeCylinders.children[i] == selectedCylinder) {
+                if (paper.edges[i].type != "Border") {
+                    highlighted = i;
+                    saveMaterial = wireframe.children[i].material;
+                    wireframe.children[i].material.gapSize = 2;
+                }
+            }
         }
     }
 }
 
 ///// EDGE TYPES (cut, valley, ridge)
+
+//
+// Creates a collection of cylinders from the paper edges
+//
+function createEdgeCylinders() {
+    edgeCylinders = new THREE.Object3D();
+    var m = new THREE.MeshLambertMaterial({
+        color: 0x0000ff
+    });
+    for (var i in paper.edges) {
+        var e = paper.edges[i];
+        var g = cylinder(e.geometry.vertices[0], e.geometry.vertices[1], 5);
+        edgeCylinders.add(new THREE.Mesh(g, m));
+    }
+}
 
 /**
  * Marks all selected edges as being of the given edge type
@@ -429,11 +510,17 @@ function onWindowMouseMove(event) {
  * @param {String} edgeType
  */
 function labelEdge(edgeType) {
+    scene.remove(wireframe);
     for (var i = 0; i < selected.length; i++) {
-        if (selected[i].halfedge.edgeType == "Border") continue;
-        selected[i].material.color.setHex(edgeTypeColor[edgeType]);
-        selected[i].halfedge.edgeType = edgeType;
+        var j = selected[i];
+        var paperedge = paper.edges[j];
+        if (paperedge.type != "Border") {
+            paperedge.type = edgeType;
+        }
     }
+    wireframe = paper.wireframe(edgeMaterial);
+    scene.add(wireframe);
+
     deselectAll();
 }
 
@@ -444,9 +531,9 @@ function labelEdge(edgeType) {
  * @method deselectAll
  */
 function deselectAll() {
-    for (var i = 0; i < selected.length; i++) {
-        selected[i].material.gapSize = 0;
-    }
+    /* for (var i = 0; i < selected.length; i++) {
+         selected[i].material.gapSize = 0;
+     }*/
     selected = [];
 }
 
@@ -457,47 +544,10 @@ function deselectAll() {
  */
 function allFlat() {
     selected = [];
-    for (var i = 0; i < edges.children.length; i++) {
-        selected.push(edges.children[i]);
+    for (var i = 0; i < wireframe.children.length; i++) {
+        selected.push(i);
     }
     labelEdge("Flat");
-}
-
-
-/**
- * Processes edges to be cut, possibly altering hds.
- * Returns true if hds was modified.
- *
- * @method processCuts
- * @return BinaryExpression
- */
-function processCuts() {
-    var vtxToSnip = [];
-    var cutCount = 0;
-    hds.allEdges(function (he, phe) {
-        var ohe = hds.halfedge[he.opp];
-        var edgeType = he.edgeType || ohe.edgeType;
-        if (edgeType == "Cut") {
-            he.edgeType = ohe.edgeType = undefined;
-            check_hds(hds);
-            cutEdge(hds, he);
-            cutCount++;
-            if (vtxToSnip.indexOf(he.vtx) < 0) vtxToSnip.push(he.vtx);
-            if (vtxToSnip.indexOf(ohe.vtx) < 0) vtxToSnip.push(ohe.vtx);
-        }
-    });
-    var snipCount = 0;
-    while (vtxToSnip.length > 0) {
-        var newvtx_h;
-        var i = vtxToSnip[0];
-        vtxToSnip.splice(0, 1);
-        while (newvtx_h = snipVertex(hds, i)) {
-            snipCount++;
-            if (vtxToSnip.indexOf(newvtx_h.vtx) < 0) vtxToSnip.push(newvtx_h.vtx);
-        }
-    }
-    console.log(cutCount, snipCount);
-    return cutCount + snipCount > 0;
 }
 
 /**
@@ -508,8 +558,8 @@ function toggleFlatEdges() {
 
     hideFlatEdges = !hideFlatEdges;
 
-    edges.children.forEach(function (edge) {
-        if (edge.halfedge.edgeType == "Flat") {
+    wireframe.children.forEach(function (edge, index) {
+        if (paper.edges[index].type == "Flat") {
             edge.visible = hideFlatEdges
         }
     });
@@ -560,82 +610,9 @@ function parseEdgeType(edgeTypeNode, tag, label) {
     for (var i = 0; i < ridges.length; i++) {
         var index = parseInt(ridges[i])
         if (!isNaN(index)) {
-            selected.push(edges.children[index])
+            selected.push(index)
             labelEdge(label)
         }
-    }
-}
-
-///// SIMULATION
-
-/**
- * Creates constraints, i.e., a set of dihedral and linear constraints
- * from halfedge data structure hds
- *
- * @method hdsToConstraints
- */
-function hdsToConstraints() {
-
-    check_hds(hds);
-    if (processCuts()) {
-        check_hds(hds);
-        hdsCreateVertexVectors(hds);
-        objectsFromHds();
-    }
-
-    constraints = [[], []];
-    var angsum = 0;
-    hds.allEdges(function (he, phe) {
-        var ohe = hds.halfedge[he.opp];
-        var v0 = hds.vertex[he.vtx];
-        var v1 = hds.vertex[phe.vtx];
-        var sz = he.sz || ohe.sz || v0.sub(v1).mag();
-        he.sz = ohe.sz = sz;
-        var lc = new LinearConstraint(v0, v1, sz);
-        constraints[0].push(lc);
-        if (he.fac >= 0 && ohe.fac >= 0) {
-            var v2 = hds.vertex[hds.halfedge[he.nxt].vtx];
-            var v3 = hds.vertex[hds.halfedge[ohe.nxt].vtx];
-            var edgeType = he.edgeType || ohe.edgeType;
-            var angle = (edgeType == "Ridge") ? Math.PI / 2 :
-                (edgeType == "Valley") ? -Math.PI / 2 :
-                0;
-            var dc = new DihedralConstraint(v0, v1, v2, v3, angle);
-            constraints[1].push(dc);
-            angsum += dc.discrepancy();
-        }
-    });
-    console.log("Total discrepancy", angsum);
-}
-
-
-/**
- * Performs one step of the relaxation process
- *
- * @method relaxOneStep
- */
-function relaxOneStep() {
-    var n = 10;
-    var lc = constraints[0],
-        dc = constraints[1];
-    for (var k = 0; k < n; k++) {
-        var f = (k + 1 + n) / (n + n);
-        for (var i = 0; i < dc.length; i++) {
-            var c = dc[i];
-            c.relax(f);
-        }
-        for (var i = 0; i < lc.length; i++) {
-            var c = lc[i];
-            c.relax(f);
-        }
-    }
-    hdsUpdateVertexVectors(hds);
-    mesh.geometry.verticesNeedUpdate = true;
-    mesh.geometry.computeFaceNormals();
-    mesh.geometry.normalsNeedUpdate = true;
-    var e = edges.children;
-    for (var i = 0; i < e.length; i++) {
-        e[i].geometry.verticesNeedUpdate = true;
     }
 }
 
@@ -752,11 +729,11 @@ function triangulate() {
 function boxSelectObjects(x, y, x2, y2) {
 
     var selectionBox = new THREE.Box2(new THREE.Vector2(x, y), new THREE.Vector2(x2, y2))
-    edges.children.forEach(function (edge) {
+    wireframe.children.forEach(function (edge, index) {
 
         if (selectionContainsObject(selectionBox, edge)) {
             edge.material.gapSize = 2;
-            selected.push(edge);
+            selected.push(index);
         }
     });
 }
@@ -859,21 +836,25 @@ function drawSelectionBox(moveX, moveY) {
  */
 function selectObject() {
 
-    // find intersections
-    raycaster.setFromCamera(mouse, camera);
-    var intersects = raycaster.intersectObjects(edges.children);
-    if (intersects.length > 0) {
-        var obj = intersects[0].object;
-        var sel = selected.indexOf(obj);
+    if (highlighted != undefined /* && getActiveMode() == "edge"*/ ) {
+        var sel = selected.indexOf(highlighted)
         if (sel >= 0) {
-            obj.material.gapSize = 0;
+            // Already selected: remove
             selected.splice(sel, 1);
+            wireframe.children[highlighted].material = edgeMaterial(paper.edges[highlighted]);
         } else {
-            obj.material.gapSize = 2;
-            selected.push(obj);
+            // Include in selection
+            selected.push(highlighted);
+            wireframe.children[highlighted].material = new THREE.LineDashedMaterial({
+                color: 0x000000,
+                scale: 0.5,
+                linewidth: 5,
+                dashSize: 2,
+                gapSize: 0
+            });
         }
+        wireframe.children[highlighted].material.gapSize = 2;
     }
-
 }
 
 
@@ -1092,13 +1073,64 @@ function paperHalfedge(n, m, s) {
     return hds;
 }
 
+
+// Returns a PaperModel for a gridded paper with
+// n times m cells, each of size s
+function createPaperModel(n, m, s) {
+    function iv(i, j) {
+        return i * m + j
+    };
+    var fac = [],
+        vtx = [];
+    var x0 = -(n - 1) * s / 2;
+    var y0 = -(m - 1) * s / 2
+    for (var i = 0; i < n; i++) {
+        for (var j = 0; j < m; j++) {
+            vtx.push(new PVector(x0 + i * s, y0 + j * s, 0));
+            if (i > 0 && j > 0) {
+                fac.push([iv(i - 1, j - 1), iv(i - 1, j), iv(i, j)]);
+                fac.push([iv(i - 1, j - 1), iv(i, j), iv(i, j - 1)]);
+            }
+        }
+    }
+    return new PaperModel(fac, vtx);
+}
+
 /**
- * Generate a halfedge from a mesh structure
+ * Generate a PaperModel from a mesh structure
  * @method halfedgeFromMesh
  * @param {} mesh
  * @return hds
  */
-function halfedgeFromMesh(mesh) {
+function buildPaperModel(vtx, fac) {
+
+    var paper = new PaperModel(fac, vtx);
+    /*var n = 0;
+	for (var i in json.edges) {
+		var edg = json.edges[i];
+		for (var j in paper.edges) {
+			var e = paper.edges[j];
+			var v0 = e.halfedge.vtx;
+			var v1 = paper.hds.halfedge[e.halfedge.opp].vtx;
+			if ((v0 == edg.v0 && v1 == edg.v1) || (v1 == edg.v0 && v0 == edg.v1)) {
+				e.type = edg.type;
+				n++;
+				break;
+			}
+		}
+	}
+	paper.computeEdges();*/
+    return paper;
+}
+
+
+/**
+ * Generate a PaperModel from a mesh structure
+ * @method halfedgeFromMesh
+ * @param {} mesh
+ * @return hds
+ */
+function paperModelFromMesh(mesh) {
 
     var fac = [],
         vtx = [];
@@ -1111,18 +1143,16 @@ function halfedgeFromMesh(mesh) {
         vtx.push(new PVector(vertex.x, vertex.y, vertex.z));
     });
 
-    var hds = new HalfedgeDS(fac, vtx);
-    hdsCreateVertexVectors(hds);
-    return hds;
+    return buildPaperModel(vtx, fac);
 }
 
 /**
- * Generate a halfedge from a triangulated draw
- * @method halfedgeFromDraw
+ * Generate a PaperModel from a triangulated draw
+ * @method paperModelFromDraw
  * @param {} swctx
  * @return hds
  */
-function halfedgeFromDraw(swctx) {
+function paperModelFromDraw(swctx) {
 
     var fac = [],
         vtx = [];
@@ -1136,9 +1166,7 @@ function halfedgeFromDraw(swctx) {
         vtx[vertex.id] = new PVector(vertex.x, vertex.y, 0);
     });
 
-    var hds = new HalfedgeDS(fac, vtx);
-    hdsCreateVertexVectors(hds);
-    return hds;
+    return buildPaperModel(vtx, fac);
 }
 
 ///// MESH: LOADING, DOWNLOADING
@@ -1153,11 +1181,19 @@ function loadMesh(newMesh, fromDraw) {
 
     $(".gui input[value='edge']").click();
     $('.states-list').empty()
+    if (wireframe != undefined) scene.remove(wireframe);
+    if (mesh != undefined) scene.remove(mesh);
     if (fromDraw)
-        hds = halfedgeFromDraw(newMesh);
+        paper = paperModelFromDraw(newMesh);
     else
-        hds = halfedgeFromMesh(newMesh);
-    objectsFromHds();
+        paper = paperModelFromMesh(newMesh);
+
+    //paper = createPaperModel(4, 4, 100);
+
+    wireframe = paper.wireframe(edgeMaterial);
+    mesh = paper.mesh(meshMaterial);
+    createEdgeCylinders();
+    scene.add(wireframe, mesh);
 }
 
 /**
@@ -1260,7 +1296,7 @@ function generateXMLFromMesh() {
 
             //Vertices
             var vtx = ""
-            hds.vecVertex.forEach(function (vertex) {
+            paper.vecVertex.forEach(function (vertex) {
                 vtx += vertex.x + " " + vertex.y + " " + vertex.z + " "
             })
 
@@ -1268,7 +1304,7 @@ function generateXMLFromMesh() {
             var fac = "",
                 facV = "";
 
-            hds.face.forEach(function (face) {
+            paper.hds.face.forEach(function (face) {
                 console.log('face');
                 fac += face[0] + " " + face[1] + " " + face[2] + " "
                 facV += "3 "
@@ -1279,9 +1315,9 @@ function generateXMLFromMesh() {
 
             if (meshTag) {
                 meshTag.getElementsByTagName("float_array")[0].innerHTML = vtx;
-                meshTag.getElementsByTagName("float_array")[0].setAttribute("count", hds.vecVertex.length * 3);
-                meshTag.getElementsByTagName("accessor")[0].setAttribute("count", hds.vecVertex.length);
-                meshTag.getElementsByTagName("polylist")[0].setAttribute("count", hds.face.length);
+                meshTag.getElementsByTagName("float_array")[0].setAttribute("count", paper.vecVertex.length * 3);
+                meshTag.getElementsByTagName("accessor")[0].setAttribute("count", paper.vecVertex.length);
+                meshTag.getElementsByTagName("polylist")[0].setAttribute("count", paper.hds.face.length);
                 meshTag.getElementsByTagName("vcount")[0].innerHTML = facV;
                 meshTag.getElementsByTagName("p")[0].innerHTML = fac;
 
@@ -1324,8 +1360,8 @@ function addNewState() {
         ridges = [],
         valleys = [];
 
-    edges.children.forEach(function (elem, index) {
-        switch (elem.halfedge.edgeType) {
+    wireframe.children.forEach(function (elem, index) {
+        switch (paper.edges[index].type) {
         case "Cut":
             cuts.push(index)
             break;
@@ -1403,4 +1439,3 @@ function removeState(event) {
 
 
 }
-

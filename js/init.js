@@ -47,6 +47,7 @@ loader.load(meshURL, function (collada) {
     initInterface();
     init3DStage();
     update();
+
 });
 
 document.getElementById('files').addEventListener('change', handleFileSelect, false);
@@ -146,6 +147,13 @@ function initInterface() {
         update();
 
     })
+
+    $('#foldBtn').on('click', function () {
+       // fold(5);
+        setInterval(function () {fold(1)}, 32);
+        update();
+
+    })
 }
 
 /**
@@ -210,6 +218,7 @@ function init3DStage() {
     /* Define the object to be viewed */
     loadMesh(geoMesh);
     getColladaFileFromURL();
+
 
 
     /* Add a raycaster for picking objects */
@@ -1343,6 +1352,9 @@ function getColladaFileFromURL() {
             console.log(xmlhttp.responseXML)
             xmlDoc = xmlhttp.responseXML;
             loadEdgeTypes();
+
+            //Fold
+            //fold(90);
         }
     }
 }

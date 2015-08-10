@@ -4,7 +4,6 @@
  * @class InitClass
  * @constructor
  */
-
 var paper, wireframe, mesh, edgeCylinders;
 var camera, scene, renderer, controls, clock, trackballControls,
     hideFlatEdges = true,
@@ -43,7 +42,7 @@ loader.options.convertUpAxis = true;
 loader.load(meshURL, function (collada) {
 
     dae = collada.scene;
-    geoMesh = dae.children[0].children[0].geometry
+    geoMesh = dae.children[0].children[0].geometry;
     initInterface();
     init3DStage();
     update();
@@ -81,10 +80,10 @@ function initInterface() {
         .append("button")
         .attr("class", "btn btn-default guiButton")
         .text(function (d) {
-            return d
+            return d;
         })
         .attr("id", function (d) {
-            return d
+            return d;
         })
         .on("click", function (d, i) {
             if (i < 4) labelEdge(d);
@@ -106,11 +105,11 @@ function initInterface() {
         .append("button")
         .attr("class", "btn btn-default guiButton")
         .text(function (d) {
-            return d
+            return d;
         })
         .on("click", function (d, i) {
-            if (i == 0) paper.relaxOneStep();
-            if (i == 1) relaxCount = 100;
+            if (i === 0) paper.relaxOneStep();
+            if (i === 1) relaxCount = 100;
         });
 
     gui.selectAll("input.modeSelect").on("click", function () {
@@ -122,7 +121,7 @@ function initInterface() {
         if (activeGui == "anim") {
             paper.computeConstraints();
         }
-    })
+    });
 
 
     //Mode select
@@ -132,21 +131,22 @@ function initInterface() {
         $('#stageDraw').fadeIn();
         update();
 
-    })
+    });
 
     $('#option3D').on('change', function () {
         console.log("change2D");
-        drawingMode = false
+        drawingMode = false;
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         $('#stageDraw').fadeOut();
         update();
 
-    })
+    });
+
     $('#triangulateBtn').on('click', function () {
         triangulate();
         update();
 
-    })
+    });
 
     var intervalCount = 1,
         intervalID;
@@ -159,14 +159,15 @@ function initInterface() {
                 clearInterval(intervalID);
                 intervalCount = 1;
             } else {
-                fold(1)
+                paper.fold(1);
                 intervalCount++;
             }
         }, 32);
         update();
 
-    })
+    });
 }
+
 
 /**
  * Function that returns the active interaction mode
@@ -186,7 +187,7 @@ function getActiveMode() {
               //return "hidden";
               return "visible";
           })*/
-    })
+    });
     return activeGui;
 }
 
@@ -292,8 +293,8 @@ function edgeMaterial(edge) {
 // Readds the paper object to the scene
 //
 function resetScene() {
-    if (wireframe != undefined) scene.remove(wireframe);
-    if (mesh != undefined) scene.remove(mesh);
+    if (wireframe !== undefined) scene.remove(wireframe);
+    if (mesh !== undefined) scene.remove(mesh);
     wireframe = paper.wireframe(edgeMaterial);
     mesh = paper.mesh(meshMaterial);
     var activeUi = getActiveMode();
@@ -332,7 +333,7 @@ function initSelectionCanvas() {
     ctx.setLineDash([15, 5]);
     ctx.strokeStyle = "rgba(214, 115, 0, 0.74)";
     ctx.lineWidth = 2.0;
-    drawingModeCanvas()
+    drawingModeCanvas();
 }
 
 /**
@@ -406,13 +407,13 @@ function onWindowMouseDown(event) {
 
         if (drawingMode) {
             document.body.style.cursor = 'crosshair';
-            initX = event.clientX
-            initY = event.clientY
+            initX = event.clientX;
+            initY = event.clientY;
         } else {
-            trackballControls.enabled = false
+            trackballControls.enabled = false;
             document.body.style.cursor = 'crosshair';
-            initX = event.clientX
-            initY = event.clientY
+            initX = event.clientX;
+            initY = event.clientY;
         }
     }
 }
@@ -432,7 +433,7 @@ function onWindowMouseUp(event) {
             h = event.clientY - initY;
 
         //save points
-        drawInternalVertices = []
+        drawInternalVertices = [];
         drawInternalVertices.push(formatPoint(x, y));
         drawInternalVertices.push(formatPoint(x + w, y));
         drawInternalVertices.push(formatPoint(x + w, y + (h / 2)));
@@ -449,8 +450,8 @@ function onWindowMouseUp(event) {
 
         }
     }
-    initX = -1
-    initY = -1
+    initX = -1;
+    initY = -1;
     document.body.style.cursor = 'pointer';
 }
 
@@ -477,13 +478,13 @@ function onWindowClick(event) {
 function onWindowMouseMove(event) {
 
     if (initX > -1 || initY > -1) {
-        drawSelectionBox(event.clientX, event.clientY)
+        drawSelectionBox(event.clientX, event.clientY);
     }
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-    if (highlighted != undefined) {
+    if (highlighted !== undefined) {
         wireframe.children[highlighted].material.gapSize = 0;
         highlighted = undefined;
     }
@@ -581,7 +582,7 @@ function toggleFlatEdges() {
 
     wireframe.children.forEach(function (edge, index) {
         if (paper.edges[index].type == "Flat") {
-            edge.visible = hideFlatEdges
+            edge.visible = hideFlatEdges;
         }
     });
 }
@@ -594,14 +595,14 @@ function toggleFlatEdges() {
  */
 function loadEdgeTypes() {
 
-    var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type")
+    var edgeTypeTags = xmlDoc.getElementsByTagName("edge_type");
 
     for (var i = 0; i < edgeTypeTags.length; i++) {
         addState(i);
     }
 
     $('.state-item').last().trigger("click");
-    parseEdgeTypeByIndex(edgeTypeTags.length - 1)
+    parseEdgeTypeByIndex(edgeTypeTags.length - 1);
 }
 
 /**
@@ -612,7 +613,7 @@ function loadEdgeTypes() {
 function parseEdgeTypeByIndex(index) {
     console.log("index " + index);
     allFlat();
-    var edgeTypeNode = xmlDoc.getElementsByTagName("edge_type")[index]
+    var edgeTypeNode = xmlDoc.getElementsByTagName("edge_type")[index];
     parseEdgeType(edgeTypeNode, "cuts", "Cut");
     parseEdgeType(edgeTypeNode, "ridges", "Ridge");
     parseEdgeType(edgeTypeNode, "valleys", "Valley");
@@ -629,10 +630,10 @@ function parseEdgeTypeByIndex(index) {
 function parseEdgeType(edgeTypeNode, tag, label) {
     var ridges = edgeTypeNode.getElementsByTagName(tag)[0].innerHTML.split(" ");
     for (var i = 0; i < ridges.length; i++) {
-        var index = parseInt(ridges[i])
+        var index = parseInt(ridges[i]);
         if (!isNaN(index)) {
-            selected.push(index)
-            labelEdge(label)
+            selected.push(index);
+            labelEdge(label);
         }
     }
 }
@@ -652,13 +653,13 @@ function drawingModeCanvas() {
     c.style.pointerEvents = 'none';
     var bgctx = c.getContext("2d");
 
-    bgctx.fillStyle = "white"
-    bgctx.fillRect(0, 0, window.innerWidth, window.innerHeight)
+    bgctx.fillStyle = "white";
+    bgctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
     //papersheet
-    bgctx.setLineDash([])
-    bgctx.strokeStyle = "gray"
-    bgctx.lineWidth = 1.0
+    bgctx.setLineDash([]);
+    bgctx.strokeStyle = "gray";
+    bgctx.lineWidth = 1.0;
 
     var h = window.innerHeight - 60,
         w = (2 / 3.0) * h,
@@ -669,22 +670,22 @@ function drawingModeCanvas() {
     originY = y + (h / 2);
 
 
-    bgctx.rect(x, y, w, h)
-    bgctx.fill()
-    bgctx.stroke()
+    bgctx.rect(x, y, w, h);
+    bgctx.fill();
+    bgctx.stroke();
 
 
     //middle fold
-    bgctx.strokeStyle = "aqua"
-    bgctx.beginPath()
-    bgctx.moveTo(x, (h / 2.0) + y)
-    bgctx.lineTo(x + w, (h / 2.0) + y)
-    bgctx.stroke()
-    bgctx.closePath()
+    bgctx.strokeStyle = "aqua";
+    bgctx.beginPath();
+    bgctx.moveTo(x, (h / 2.0) + y);
+    bgctx.lineTo(x + w, (h / 2.0) + y);
+    bgctx.stroke();
+    bgctx.closePath();
 
 
     //Add page vertices to triangulation
-    drawExternalVertices = []
+    drawExternalVertices = [];
     drawExternalVertices.push(formatPoint(x, y));
     drawExternalVertices.push(formatPoint(x + w, y));
     drawExternalVertices.push(formatPoint(x + w, y + (h / 2)));
@@ -694,7 +695,7 @@ function drawingModeCanvas() {
 
 
     //Draw Layer
-    var c = document.getElementById("drawCanvas");
+    c = document.getElementById("drawCanvas");
     c.width = window.innerWidth;
     c.height = window.innerHeight;
     c.style.pointerEvents = 'none';
@@ -718,7 +719,7 @@ function formatPoint(px, py) {
         x: nx,
         y: ny,
         id: drawExternalVertices.length + drawInternalVertices.length
-    }
+    };
 }
 
 /**
@@ -730,10 +731,10 @@ function triangulate() {
     var swctx = new poly2tri.SweepContext(drawExternalVertices);
     swctx.addPoints(drawInternalVertices);
     swctx.triangulate();
-    loadMesh(swctx, true)
-    allFlat()
+    loadMesh(swctx, true);
+    allFlat();
     $("#option3D").click();
-    generateXMLFromMesh()
+    generateXMLFromMesh();
 }
 
 
@@ -749,7 +750,7 @@ function triangulate() {
  */
 function boxSelectObjects(x, y, x2, y2) {
 
-    var selectionBox = new THREE.Box2(new THREE.Vector2(x, y), new THREE.Vector2(x2, y2))
+    var selectionBox = new THREE.Box2(new THREE.Vector2(x, y), new THREE.Vector2(x2, y2));
     wireframe.children.forEach(function (edge, index) {
 
         if (selectionContainsObject(selectionBox, edge)) {
@@ -775,7 +776,7 @@ function selectionContainsObject(selectBox, object) {
     var min = mesh3DBox.min;
     var max = mesh3DBox.max;
 
-    var points = []
+    var points = [];
     points.push(screenCoordFrom3DPoint(new THREE.Vector3(max.x, min.y, min.z)));
     points.push(screenCoordFrom3DPoint(new THREE.Vector3(min.x, max.y, min.z)));
     points.push(screenCoordFrom3DPoint(new THREE.Vector3(min.x, min.y, max.z)));
@@ -785,10 +786,10 @@ function selectionContainsObject(selectBox, object) {
     points.push(screenCoordFrom3DPoint(mesh3DBox.min));
     points.push(screenCoordFrom3DPoint(mesh3DBox.max));
 
-    var bbox = new THREE.Box2()
-    bbox.setFromPoints(points)
+    var bbox = new THREE.Box2();
+    bbox.setFromPoints(points);
 
-    return selectBox.containsBox(bbox)
+    return selectBox.containsBox(bbox);
 }
 
 /**
@@ -857,8 +858,8 @@ function drawSelectionBox(moveX, moveY) {
  */
 function selectObject() {
 
-    if (highlighted != undefined /* && getActiveMode() == "edge"*/ ) {
-        var sel = selected.indexOf(highlighted)
+    if (highlighted !== undefined /* && getActiveMode() == "edge"*/ ) {
+        var sel = selected.indexOf(highlighted);
         if (sel >= 0) {
             // Already selected: remove
             selected.splice(sel, 1);
@@ -887,8 +888,8 @@ function selectObject() {
  * @method objectsFromHds
  */
 function objectsFromHds() {
-    if (mesh != undefined) scene.remove(mesh);
-    if (edges != undefined) scene.remove(edges);
+    if (mesh !== undefined) scene.remove(mesh);
+    if (edges !== undefined) scene.remove(edges);
 
     // Add the surface
     var geometry = halfedgeGeometry(hds);
@@ -922,7 +923,7 @@ function halfedgeGeometry(hds) {
      * @return BinaryExpression
      */
     function iv(i, j) {
-        return i * m + j
+        return i * m + j;
     };
     var g = new THREE.Geometry();
     g.vertices = hds.vecVertex;
@@ -955,7 +956,7 @@ function addHdsEdgeCylinders(hds, scene, r) {
         var m = new THREE.MeshLambertMaterial({
             color: 0x0000ff
         });
-        if (he.edgeType != undefined)
+        if (he.edgeType !== undefined)
             m.color.setHex(edgeTypeColor[he.edgeType]);
         mesh = new THREE.Mesh(g, m);
         mesh.halfedge = he;
@@ -990,7 +991,7 @@ function addHdsEdgeLines(hds, scene) {
         if (he.fac < 0 || hds.halfedge[he.opp].fac < 0) {
             he.edgeType = "Border";
         }
-        if (he.edgeType != undefined)
+        if (he.edgeType !== undefined)
             m.color.setHex(edgeTypeColor[he.edgeType]);
 
         var line = new THREE.Line(g, m);
@@ -1020,6 +1021,7 @@ function toVec3(pvector) {
  * @return cylinder
  */
 function cylinder(vstart, vend, r) {
+
     var distance = vstart.distanceTo(vend);
     var position = vend.clone().add(vstart).divideScalar(2);
     var cylinder = new THREE.CylinderGeometry(r, r, distance, 10, 10, true);
@@ -1073,13 +1075,13 @@ function hdsUpdateVertexVectors(hds) {
 function paperHalfedge(n, m, s) {
 
     function iv(i, j) {
-        return i * m + j
-    };
+        return i * m + j;
+    }
 
     var fac = [],
         vtx = [];
     var x0 = -(n - 1) * s / 2;
-    var y0 = -(m - 1) * s / 2
+    var y0 = -(m - 1) * s / 2;
     for (var i = 0; i < n; i++) {
         for (var j = 0; j < m; j++) {
             vtx.push(new PVector(x0 + i * s, y0 + j * s, 0));
@@ -1098,9 +1100,11 @@ function paperHalfedge(n, m, s) {
 // Returns a PaperModel for a gridded paper with
 // n times m cells, each of size s
 function createPaperModel(n, m, s) {
+
     function iv(i, j) {
-        return i * m + j
-    };
+        return i * m + j;
+    }
+
     var fac = [],
         vtx = [];
     var x0 = -(n - 1) * s / 2;

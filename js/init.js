@@ -152,8 +152,8 @@ function initInterface() {
         intervalID;
 
     $('#foldBtn').on('click', function () {
-        // fold(5);
-        intervalID = setInterval(function () {
+         paper.fold(90);
+      /*  intervalID = setInterval(function () {
             console.log("interval "+intervalCount);
             if (intervalCount > 90) {
                 clearInterval(intervalID);
@@ -162,7 +162,7 @@ function initInterface() {
                 paper.fold(1);
                 intervalCount++;
             }
-        }, 32);
+        }, 32);*/
         update();
 
     });

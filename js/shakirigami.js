@@ -1,4 +1,4 @@
-var SHAKIRIGAMI;
+var SK;
 
 (function () {
     "use strict";
@@ -7,7 +7,7 @@ var SHAKIRIGAMI;
      * SHAKIRIGAMI: the app namespace
      */
 
-    SHAKIRIGAMI = function () {
+    SK = function () {
 
 
     };

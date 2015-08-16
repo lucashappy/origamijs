@@ -452,7 +452,7 @@ function onWindowMouseUp(event) {
     }
     initX = -1;
     initY = -1;
-    document.body.style.cursor = 'pointer';
+    document.body.style.cursor = 'default';
 }
 
 

@@ -96,7 +96,14 @@
         #drawCanvas {
             height: 100vh;
             width: 100vw;
-            position: absolute;
+            position: absolute !important;
+        }
+
+        #infoLayerCanvas,
+        .canvas-container {
+            position: absolute !important;
+            pointer-events: none;
+
         }
 
         #stage3D {
@@ -119,6 +126,8 @@
 <body>
     <div id="stage3D">
     </div>
+
+    <canvas id="infoLayerCanvas"></canvas>
 
     <canvas id="myCanvas">
         Your browser does not support the HTML5 canvas tag.</canvas>
@@ -161,17 +170,17 @@
         </label>
         <button type="button" id="triangulateBtn" class="btn btn-default">Triangulate</button>
 
-         <h4>Action</h4>
+        <h4>Action</h4>
         <button type="button" id="foldBtn" class="btn btn-default">Fold</button>
 
 
     </div>
 
-    <div class="dropdownchlass="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Load
-            <span class="caret"></span>
-        </button>
+    <div class="dropdown" class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">Load
+        <span class="caret"></span>
+
         <ul class="dropdown-menu" role="menu" aria-labelledby="menu1">
-                        <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('simple_card.dae');return false;">SimpleCard</a>
+            <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('simple_card.dae');return false;">SimpleCard</a>
             </li>
             <li role="presentation"><a role="menuitem" tabindex="-1" href="#" onclick="loadModel('01_RoyalCrescent2b.dae');return false;">1.Royal</a>
             </li>
@@ -205,6 +214,9 @@
 
     <script src="./js/lib/ColladaLoader.js"></script>
     <script src="./js/lib/poly2tri.js"></script>
+    <script src="./js/lib/fabric.min.js"></script>
+
+    <script src="./js/infoLayer.js"></script>
     <script src="./js/shakirigami.js"></script>
     <script src="./js/component.js"></script>
     <script src="./js/fold.js"></script>

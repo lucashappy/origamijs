@@ -15,7 +15,7 @@ var camera, scene, renderer, controls, clock, trackballControls,
     originX = 0,
     originY = 0;
 var hds, edges, mouse, raycaster, selected = [],
-    meshURL = "./models/simple_card.dae",
+    meshURL = "./models/cube_card.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -282,7 +282,7 @@ function edgeMaterial(edge) {
     var material = new THREE.LineDashedMaterial({
         color: edgeTypeColor[edge.type],
         scale: 0.5,
-        linewidth: 3,
+        linewidth: 2,
         dashSize: 2,
         gapSize: 0
     });

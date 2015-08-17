@@ -7,7 +7,6 @@
 
         PaperModel.prototype.fold = function fold(degrees) {
 
-
             console.log("Folding " + degrees + "º");
             //Compute coponents and its boundaries
             if (paper.components === undefined)
@@ -217,5 +216,20 @@
             });
         }
     };
+
+     PaperModel.prototype.computeCentroids = function () {
+
+         var self = this;
+         self.centroids = [];
+         self.hds.face.forEach(function (face, index) {
+
+             var sum =  self.hds.vertex[face[0]]
+                            .add(self.hds.vertex[face[1]])
+                            .add(self.hds.vertex[face[2]]);
+
+             self.centroids[index] = sum.mult(1/3.0);
+
+         });
+     };
 
 }());

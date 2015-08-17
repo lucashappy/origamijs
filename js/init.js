@@ -392,6 +392,17 @@ document.addEventListener('keydown', function (event) {
         }
     }
 
+     if (event.keyCode == 86) {
+             infoLayer.drawVertices();
+     }
+
+    if (event.keyCode == 87) {
+             infoLayer.drawFaces();
+     }
+    if (event.keyCode == 88) {
+             infoLayer.drawHalfedges();
+     }
+
 });
 
 ///// MOUSE INTERACTION
@@ -800,7 +811,7 @@ function selectionContainsObject(selectBox, object) {
  */
 function screenCoordFrom3DPoint(point3D) {
 
-    var vector = point3D.project(camera);
+    var vector = new THREE.Vector3().copy(point3D).project(camera);
 
     vector.x = (vector.x + 1) / 2 * window.innerWidth;
     vector.y = -((vector.y - 1) / 2 * window.innerHeight);

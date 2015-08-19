@@ -19,7 +19,9 @@ var infoLayer;
     infoLayer = canvas;
     var vertices = [],
         faces = [],
-        halfedges = [];
+        halfedges = [],
+        components = [];
+
 
     infoLayer.drawVertices = function () {
 
@@ -221,24 +223,77 @@ var infoLayer;
             });
 
 
-            //  group.scale(0);
+            //group.scale(0);
             canvas.add(group);
             halfedges.push(group);
 
 
 
-            /*  group.animate({
+            /* group.animate({
                   scaleX: zoomFactor > 1 ? zoomFactor : 1,
                   scaleY: zoomFactor > 1 ? zoomFactor : 1
               }, {
                   onChange: canvas.renderAll.bind(canvas),
-                  easing: fabric.util.ease.easeOutBounce
+                  easing: fabric.util.ease.easeOutBounce,
+                 duration:1000
               });*/
 
         });
         //toSave SVG
         //window.open('data:image/svg+xml;utf8,' + encodeURIComponent(canvas.toSVG()));
 
+    };
+
+    infoLayer.drawComponents = function () {
+
+        console.log("Draw Components");
+        var zoomFactor = 1000 / camera.position.z;
+
+        components.forEach(function (elem) {
+            canvas.remove(elem);
+        });
+        components.length = 0;
+
+        //if(paper.centroids === undefined)
+        paper.computeCentroids();
+
+        paper.components.forEach(function (c, index) {
+
+            var point = screenCoordFrom3DPoint(paper.centroids[c.faces[0]]);
+
+            var circle = new fabric.Circle({
+                radius: 18,
+                fill: '#000',
+                originX: 'center',
+                originY: 'center'
+            });
+
+            var text = new fabric.Text(index + "", {
+                fontSize: 12,
+                fill: "#fff",
+                fontFamily: "Arial, Helvetica Neue, Helvetica, sans-serif",
+                originX: 'center',
+                originY: 'center'
+            });
+
+            var group = new fabric.Group([circle,text], {
+                left: point.x,
+                top: point.y,
+                originX: "center",
+                originY: "center"
+            });
+
+            group.scale(0);
+            canvas.add(group);
+            components.push(group);
+            group.animate({
+                scaleX: zoomFactor > 1 ? zoomFactor : 1,
+                scaleY: zoomFactor > 1 ? zoomFactor : 1
+            }, {
+                onChange: canvas.renderAll.bind(canvas),
+                easing: fabric.util.ease.easeOutBounce
+            });
+        });
     };
 
 }());

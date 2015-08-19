@@ -402,6 +402,9 @@ document.addEventListener('keydown', function (event) {
     if (event.keyCode == 88) {
              infoLayer.drawHalfedges();
      }
+    if (event.keyCode == 67) {
+             infoLayer.drawComponents();
+     }
 
 });
 

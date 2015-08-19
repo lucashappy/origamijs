@@ -57,7 +57,7 @@
                     resetScene();
                 }*/
            // });
-             var self = this;
+            /* var self = this;
             var boundary = self.components[0].boundaries.pop();
             var component = self.components[0];
 
@@ -82,7 +82,8 @@
 
 
                     resetScene();
-                }
+                }*/
+
 
         };
 
@@ -142,6 +143,7 @@
             self.components = [];
             self.boundaries = [];
 
+
             //For each component
             for (var i = 0; i < self.groupCount; i++) {
 
@@ -153,6 +155,8 @@
                 //For all faces which belongs to this component
                 for (var j = 0; j < self.faceGroup.length; j++) {
                     if (self.faceGroup[j] === i) {
+
+                        component.faces.push(j);
                         var face = self.hds.halfedge[self.hds.faceh[j]];
                         var tempBoundaries = [[], [], []];
 
@@ -168,12 +172,10 @@
                             case "Valley":
                                 tempBoundaries[2].push(he);
                                 break;
-                            default:
-                                //add vertices to the component
-                                if (component.vertices.indexOf(he.vtx) === -1)
-                                    component.vertices.push(he.vtx);
-                                break;
                             }
+
+                            if (component.vertices.indexOf(he.vtx) === -1)
+                                    component.vertices.push(he.vtx);
 
                         }, face);
 
@@ -203,7 +205,7 @@
             }
 
             //For each discovered boundary
-            component.boundaries.forEach(function (boundary) {
+           /* component.boundaries.forEach(function (boundary) {
 
                 //Remove the boundaries vertices from the component
                 boundary.vertices.forEach(function (vtx) {
@@ -213,7 +215,7 @@
                 });
 
                 //Maybe add the boundary to the opposite component? (to avoid recalculate)
-            });
+            });*/
         }
     };
 

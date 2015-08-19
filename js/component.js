@@ -11,7 +11,9 @@
 
         this.id = id;
         this.boundaries = []; //refered nodes in graph
-        this.vertices = []; //vertices of the component that don't belongs to a border
+        this.vertices = []; //vertices of the component
+        this.faces = []; // faces of the component
+
     };
 
     /**

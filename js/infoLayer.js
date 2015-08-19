@@ -39,6 +39,7 @@ var infoLayer;
             var circle = new fabric.Circle({
                 radius: 12,
                 fill: '#fff',
+                opacity: 0.5,
                 originX: 'center',
                 originY: 'center'
             });

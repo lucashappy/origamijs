@@ -13,8 +13,10 @@
         this.boundaries = []; //refered nodes in graph
         this.vertices = []; //vertices of the component
         this.faces = []; // faces of the component
+        this.hasRidge = false;
 
     };
+
 
     /**
      * A Boundary is a set of vertices of a PaperModel between two components.
@@ -26,6 +28,8 @@
         this.side2 = null;
         this.heList = [];
         this.vertices = []; //just to easy access
+        this.isRidge = false;
+        this.direction = 1;
     };
 
     SK.Boundary.count = 0;
@@ -45,6 +49,14 @@
             this.vertices.push(oppHalfedge.vtx);
         }
 
+    };
+
+    SK.Boundary.prototype.getOtherSide = function(component){
+
+        if(this.side1.id === component.id)
+            return this.side2;
+        else
+            return this.side1;
     };
 
 

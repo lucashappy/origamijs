@@ -28,7 +28,11 @@ var infoLayer;
         vertices.forEach(function (elem) {
             canvas.remove(elem);
         });
-        vertices.length = 0;
+
+        if(vertices.length !== 0){
+            vertices.length = 0;
+            return;
+        }
 
         paper.vecVertex.forEach(function (v, index) {
 
@@ -80,7 +84,12 @@ var infoLayer;
         faces.forEach(function (elem) {
             canvas.remove(elem);
         });
-        faces.length = 0;
+
+
+        if(faces.length !== 0){
+            faces.length = 0;
+            return;
+        }
 
         //if(paper.centroids === undefined)
         paper.computeCentroids();
@@ -135,7 +144,11 @@ var infoLayer;
         halfedges.forEach(function (elem) {
             canvas.remove(elem);
         });
-        halfedges.length = 0;
+
+        if(halfedges.length !== 0){
+            halfedges.length = 0;
+            return;
+        }
 
         paper.computeCentroids();
 
@@ -253,7 +266,12 @@ var infoLayer;
         components.forEach(function (elem) {
             canvas.remove(elem);
         });
-        components.length = 0;
+
+
+        if(components.length !== 0){
+            components.length = 0;
+            return;
+        }
 
         //if(paper.centroids === undefined)
         paper.computeCentroids();

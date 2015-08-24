@@ -4,14 +4,15 @@
     "use strict";
 
     ///// Folding
-    var foldTimes = 0;
+    var foldTimes = 2;
 
     PaperModel.prototype.fold = function fold(degrees) {
 
         console.log("Folding " + degrees + "º");
 
         //process cuts
-          paper.processCuts();
+        paper.processCuts();
+
         //Compute coponents and its boundaries
         if (paper.components === undefined) {
             paper.computeComponentsBoundaries();
@@ -69,56 +70,69 @@
 
         if (foldTimes < paper.boundaries.length) {
 
-            console.log(foldTimes);
+            //  console.log(foldTimes);
             var boundary = paper.boundaries[foldTimes];
-            var component = boundary.side2;
 
-           /* var axis = paper.hds.vertex[boundary.vertices[0]].sub(paper.hds.vertex[boundary.vertices[1]]);
-            axis.normalize(0);
+            var component = boundary.side1;
 
-            var quaternion = new THREE.Quaternion();
-            quaternion.setFromAxisAngle(new THREE.Vector3(axis.x, axis.y, axis.z), degrees * Math.PI / 180);
+            /* var axis = paper.hds.vertex[boundary.vertices[0]].sub(paper.hds.vertex[boundary.vertices[1]]);
+             axis.normalize(0);
 
-            component.vertices.forEach(function (elem) {
+             var quaternion = new THREE.Quaternion();
+             quaternion.setFromAxisAngle(new THREE.Vector3(axis.x, axis.y, axis.z), degrees * Math.PI / 180);
 
-                if (boundary.vertices.indexOf(elem) === -1) { //Don't move the boundary vertices
-                    console.log("Move vertex ", elem);
-                    var v = paper.hds.vertex[elem];
-                    var vector = new THREE.Vector3(v.x, v.y, v.z);
-                    vector.applyQuaternion(quaternion);
-                    paper.hds.vertex[elem] = new PVector(vector.x, vector.y, vector.z);
-                    paper.updateVectors();
-                }
+             component.vertices.forEach(function (elem) {
 
-            });*/
+                 if (boundary.vertices.indexOf(elem) === -1) { //Don't move the boundary vertices
+                     console.log("Move vertex ", elem);
+                     var v = paper.hds.vertex[elem];
+                     var vector = new THREE.Vector3(v.x, v.y, v.z);
+                     vector.applyQuaternion(quaternion);
+                     paper.hds.vertex[elem] = new PVector(vector.x, vector.y, vector.z);
+                     paper.updateVectors();
+                 }
 
-            var bOrigin =   paper.hds.vertex[boundary.vertices[0]].add(paper.hds.vertex[boundary.vertices[1]]).mult(0.5);
+             });*/
+
+
+            var bOrigin = paper.hds.vertex[boundary.vertices[0]].add(paper.hds.vertex[boundary.vertices[1]]).mult(0.5);
 
 
             var obj = new THREE.Object3D();
             obj.position.set(bOrigin.x, bOrigin.y, bOrigin.z);
             obj.updateMatrix();
-            var axis = new THREE.Vector3(1,0,0);
-            var radians = degrees * Math.PI / 180;
+            var axis = new THREE.Vector3(1, 0, 0);
+            var radians = boundary.direction * degrees * Math.PI / 180;
 
             var rotObjectMatrix = new THREE.Matrix4();
             rotObjectMatrix.makeRotationAxis(axis, radians);
             obj.matrix.multiply(rotObjectMatrix);
 
             var quaternion = new THREE.Quaternion();
-                    quaternion.setFromRotationMatrix(obj.matrix);
+            quaternion.setFromRotationMatrix(obj.matrix);
 
             component.vertices.forEach(function (elem) {
 
                 if (boundary.vertices.indexOf(elem) === -1) { //Don't move the boundary vertices
-                    console.log("Move vertex ", elem);
-                    var v = paper.hds.vertex[elem];
-                    v = v.sub(bOrigin);
-                    var vector = new THREE.Vector3(v.x, v.y, v.z);
-                    vector.applyQuaternion(quaternion);
-                    vector = vector.add(bOrigin);
-                    paper.hds.vertex[elem] = new PVector(vector.x, vector.y, vector.z);
-                    paper.updateVectors();
+                    if (paper.hds.vertex[elem].wasMoved !== true) {
+
+                        console.log("Move vertex ", elem);
+
+                        if (paper.hds.vertex[elem].isRidge)
+                            paper.hds.vertex[elem].wasMoved = true;
+
+                        var v = paper.hds.vertex[elem];
+
+                        var vector = new THREE.Vector3(v.x, v.y, v.z);
+                        vector = vector.sub(bOrigin);
+                        vector.applyQuaternion(quaternion);
+                        vector = vector.add(bOrigin);
+                        v.x = vector.x;
+                        v.y = vector.y;
+                        v.z = vector.z;
+                        paper.hds.vertex[elem] = v;
+                        paper.updateVectors();
+                    }
                 }
 
             });
@@ -127,7 +141,7 @@
 
 
 
-            foldTimes++;
+            foldTimes--;
         }
 
         //  });
@@ -146,7 +160,6 @@
             hasVtx[self.hds.halfedge[he.opp].vtx] = true;
         });
 
-        console.log(hasVtx);
         return hasVtx;
     };
 
@@ -173,7 +186,7 @@
 
             j++;
         }
-        console.log(hasVtx);
+        // console.log(hasVtx);
 
         return hasVtx;
     };
@@ -200,6 +213,7 @@
             if (self.components[i] === undefined)
                 self.components[i] = new SK.Component(i);
             var component = self.components[i];
+            var ridges = [];
 
             //For all faces which belongs to this component
             for (var j = 0; j < self.faceGroup.length; j++) {
@@ -207,19 +221,21 @@
 
                     component.faces.push(j);
                     var face = self.hds.halfedge[self.hds.faceh[j]];
-                    var tempBoundaries = [[], [], []];
+                    var valleys = [];
 
                     self.hds.faceCirculator(function (he) {
-                        console.log(he.type);
+                        // console.log(he.type);
                         switch (he.type) {
                             /* case "Cut":
                                  tempBoundaries[0].push(he);
                                  break;*/
-                       /* case "Ridge":
-                            tempBoundaries[1].push(he);
-                            break;*/
+                        case "Ridge":
+                            component.hasRidge = true;
+                            self.hds.vertex[he.vtx].isRidge = true;
+                            ridges.push(he);
+                            break;
                         case "Valley":
-                            tempBoundaries[2].push(he);
+                            valleys.push(he);
                             break;
                         }
 
@@ -228,53 +244,99 @@
 
                     }, face);
 
-                    tempBoundaries.forEach(function (elem) {
 
-                        elem.forEach(function (he) {
 
-                            //get other side component
-                            var side2Index = self.faceGroup[self.hds.halfedge[he.opp].fac];
+                    valleys.forEach(function (he) {
+                        //get other side component
+                        var side2Index = self.faceGroup[self.hds.halfedge[he.opp].fac];
 
-                            if (side2Index !== undefined) {
+                        if (side2Index !== undefined) {
 
-                                var boundary = paper.boundaries[component.boundaries[side2Index]] || new SK.Boundary();
-                                var isNew = boundary.side1 === null;
+                            var boundary = paper.boundaries[component.boundaries[side2Index]] || new SK.Boundary();
+                            var isNew = boundary.side1 === null;
 
-                                boundary.addHalfedge(he, self.hds.halfedge[he.opp]);
-                                boundary.side1 = component;
+                            boundary.addHalfedge(he, self.hds.halfedge[he.opp]);
+                            boundary.side1 = component;
 
-                                if (self.components[side2Index] === undefined)
-                                    self.components[side2Index] = new SK.Component(side2Index);
-                                boundary.side2 = self.components[side2Index];
+                            if (self.components[side2Index] === undefined)
+                                self.components[side2Index] = new SK.Component(side2Index);
+                            boundary.side2 = self.components[side2Index];
 
-                                if (isNew) {
-                                    var index = paper.boundaries.push(boundary) - 1;
-                                    component.boundaries[side2Index] = index;
-                                    boundary.side2.boundaries[component.id] = index;
-                                }
+                            if (isNew) {
+                                boundary.id = paper.boundaries.length;
+                                var index = paper.boundaries.push(boundary) - 1;
+                                component.boundaries[side2Index] = index;
+                                boundary.side2.boundaries[component.id] = index;
 
                             }
 
-                        });
+                        }
                     });
-
-                    //Add the same boundary to the
                 }
+
             }
 
-            //For each discovered boundary
-            /* component.boundaries.forEach(function (boundary) {
+            if (component.hasRidge) {
+                var ridgeVtx = paper.hds.vertex[ridges[0].vtx];
 
-                 //Remove the boundaries vertices from the component
-                 boundary.vertices.forEach(function (vtx) {
-                     var vindex = component.vertices.indexOf(vtx);
-                     if (vindex !== -1)
-                         component.vertices.splice(vindex, 1);
-                 });
-
-                 //Maybe add the boundary to the opposite component? (to avoid recalculate)
-             });*/
+                component.boundaries.forEach(function (elem) {
+                    var boundary = paper.boundaries[elem];
+                    var boundaryVtx = paper.hds.vertex[boundary.vertices.pop()];
+                    if (boundaryVtx.y < ridgeVtx.y) {
+                        paper.boundaries[elem].direction = 1;
+                    }
+                    else{
+                        paper.boundaries[elem].direction = -1;
+                    }
+                });
+            }
         }
+
+
+
+        //Treat fold order.
+        paper.boundaries.forEach(function (boundary, index) {
+
+            if (boundary.side1.hasRidge) {
+                var component = boundary.side1;
+                var side2 = boundary.getOtherSide(component);
+                boundary.side2 = side2;
+                boundary.side1 = component;
+                paper.boundaries[index] = boundary;
+
+            } else if (boundary.side2.hasRidge) {
+
+                var component = boundary.side2;
+                var side2 = boundary.getOtherSide(component);
+                boundary.side2 = side2;
+                boundary.side1 = component;
+                paper.boundaries[index] = boundary;
+            } else {
+
+                var component = boundary.side1;
+                var side2 = boundary.getOtherSide(component);
+
+
+                var l1 = getLowestVertice(component),
+                    l2 = getLowestVertice(side2);
+
+                if (l1 < l2) {
+
+                    boundary.side2 = component;
+                    boundary.side1 = side2;
+                    paper.boundaries[index] = boundary;
+                } else {
+
+                    boundary.side2 = side2;
+                    boundary.side1 = component;
+                    paper.boundaries[index] = boundary;
+                }
+
+            }
+
+        });
+
+
     };
 
     PaperModel.prototype.computeCentroids = function () {
@@ -291,5 +353,21 @@
 
         });
     };
+
+    function getLowestVertice(component) {
+
+        var lowest = paper.hds.vertex[component.vertices[0]];
+
+        component.vertices.forEach(function (i) {
+            var v = paper.hds.vertex[i];
+            if (v.y < lowest.y)
+                lowest = v;
+
+        });
+
+        return lowest;
+    }
+
+
 
 }());

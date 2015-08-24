@@ -16,6 +16,7 @@ var camera, scene, renderer, controls, clock, trackballControls,
     originY = 0;
 var hds, edges, mouse, raycaster, selected = [],
     meshURL = "./models/cube_card.dae",
+    //meshURL = "./models/tokyo.dae",
     xmlDoc;
 var constraints = [],
     relaxCount = 0;
@@ -152,17 +153,17 @@ function initInterface() {
         intervalID;
 
     $('#foldBtn').on('click', function () {
-         paper.fold(90);
-      /*  intervalID = setInterval(function () {
-            console.log("interval "+intervalCount);
-            if (intervalCount > 90) {
-                clearInterval(intervalID);
-                intervalCount = 1;
-            } else {
-                paper.fold(1);
-                intervalCount++;
-            }
-        }, 32);*/
+        paper.fold(90);
+        /*  intervalID = setInterval(function () {
+              console.log("interval "+intervalCount);
+              if (intervalCount > 90) {
+                  clearInterval(intervalID);
+                  intervalCount = 1;
+              } else {
+                  paper.fold(1);
+                  intervalCount++;
+              }
+          }, 32);*/
         update();
 
     });
@@ -392,19 +393,30 @@ document.addEventListener('keydown', function (event) {
         }
     }
 
-     if (event.keyCode == 86) {
-             infoLayer.drawVertices();
-     }
+    if (event.keyCode == 86) {
+        infoLayer.drawVertices();
+    }
 
     if (event.keyCode == 87) {
-             infoLayer.drawFaces();
-     }
+        infoLayer.drawFaces();
+    }
     if (event.keyCode == 88) {
-             infoLayer.drawHalfedges();
-     }
+        infoLayer.drawHalfedges();
+    }
     if (event.keyCode == 67) {
-             infoLayer.drawComponents();
-     }
+
+        if (paper.components === undefined)
+            paper.computeComponentsBoundaries();
+
+        infoLayer.drawComponents();
+
+        resetScene();
+    }
+
+    if (event.keyCode == 80) {
+        paper.processCuts(0);
+        resetScene();
+    }
 
 });
 

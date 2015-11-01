@@ -230,9 +230,10 @@
                                  tempBoundaries[0].push(he);
                                  break;*/
                         case "Ridge":
-                            component.hasRidge = true;
-                            self.hds.vertex[he.vtx].isRidge = true;
-                            ridges.push(he);
+                           // component.hasRidge = true;
+                           // self.hds.vertex[he.vtx].isRidge = true;
+                            //ridges.push(he);
+                            valleys.push(he);
                             break;
                         case "Valley":
                             valleys.push(he);
